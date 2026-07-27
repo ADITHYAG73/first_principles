@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 2 — The covenant calculator</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --matmul: #2B5BA8; --norm: #C4552D; --machine: #8A8A93;
+    --hairline: #E4E1DA; --good: #2E7D4F;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); }
+  .iw .machine { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end;
+    padding: 12px; border: 1px solid var(--hairline); border-radius: 5px; background: #fff; }
+  .iw .machine label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 3px; }
+  .iw .machine input[type=number] { font-family: var(--mono); font-size: 13px; width: 96px;
+    border: 1px solid var(--hairline); border-radius: 3px; padding: 4px 6px; background: var(--paper); color: var(--ink); }
+  .iw .gpubtns { display: flex; gap: 6px; }
+  .iw button { font-family: var(--mono); font-size: 11.5px; color: var(--ink); background: #fff;
+    border: 1px solid var(--hairline); border-radius: 3px; padding: 4px 10px; cursor: pointer; }
+  .iw button[aria-pressed="true"] { border-color: var(--matmul); color: var(--matmul); }
+  .iw button:focus-visible { outline: 2px solid var(--matmul); outline-offset: 1px; }
+  .iw .istar { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-left: auto; align-self: center; }
+  .iw .nrow { display: flex; align-items: center; gap: 12px; margin: 14px 0 4px; }
+  .iw .nrow input[type=range] { flex: 1; accent-color: var(--matmul); }
+  .iw .nrow .nval { font-family: var(--mono); font-size: 13px; min-width: 86px; text-align: right; }
+  .iw table.ops { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .iw table.ops th { font-family: var(--mono); font-size: 11.5px; font-weight: 500; text-align: right;
+    padding: 6px 8px; border-bottom: 1px solid var(--hairline); color: var(--ink-soft); }
+  .iw table.ops th:first-child { text-align: left; }
+  .iw table.ops td { font-family: var(--mono); font-size: 12.5px; text-align: right; padding: 5px 8px; }
+  .iw table.ops td:first-child { font-family: var(--serif); text-align: left; color: var(--ink-soft); }
+  .iw table.ops .hdr-mm { color: var(--matmul); } .iw table.ops .hdr-nm { color: var(--norm); }
+  .iw table.ops tr.verdict td { font-family: var(--serif); font-style: italic; font-size: 12px;
+    border-top: 1px dashed var(--hairline); }
+  .iw .bars { margin-top: 16px; }
+  .iw .bars .blabel { font-size: 12px; color: var(--ink-soft); margin: 8px 0 3px; display: flex; justify-content: space-between; }
+  .iw .bars .track { position: relative; height: 22px; background: #fff; border: 1px solid var(--hairline); border-radius: 3px; overflow: hidden; }
+  .iw .bars .seg { position: absolute; top: 0; bottom: 0; }
+  .iw .bars .seg.mm { background: var(--matmul); opacity: .85; }
+  .iw .bars .seg.nm { background: var(--norm); opacity: .9; }
+  .iw .bars .seg span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-family: var(--mono); font-size: 10.5px; white-space: nowrap; }
+  .iw .payoff { margin-top: 12px; font-size: 13px; }
+  .iw .payoff b.saved { color: var(--good); }
+  .iw .fitline { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw" id="iw2">
+  <h3>Check our numbers — or your machine's</h3>
+  <p class="sub">Every constant in this article is either cited or derived. Here, derive them yourself: pick a machine (or type your own datasheet numbers), pick an <i>n</i>, and the whole of §4–§5 recomputes.</p>
+
+  <div class="machine">
+    <div>
+      <label>machine</label>
+      <div class="gpubtns" role="group" aria-label="GPU preset">
+        <button data-gpu="b200" aria-pressed="true">B200</button>
+        <button data-gpu="h100" aria-pressed="false">H100</button>
+        <button data-gpu="custom" aria-pressed="false">custom</button>
+      </div>
+    </div>
+    <div>
+      <label for="ra">R<sub>a</sub> — dense ops/s (×10¹²)</label>
+      <input id="ra" type="number" min="1" step="10" value="2250">
+    </div>
+    <div>
+      <label for="bw">bandwidth (TB/s)</label>
+      <input id="bw" type="number" min="0.1" step="0.1" value="8">
+    </div>
+    <div>
+      <label for="bytes">bytes / number</label>
+      <input id="bytes" type="number" min="1" max="8" step="1" value="2">
+    </div>
+    <div class="istar" id="istar"></div>
+  </div>
+
+  <div class="nrow">
+    <label for="nslide" style="font-size:12px; color:var(--ink-soft);">n</label>
+    <input id="nslide" type="range" min="6" max="14" step="1" value="12" aria-label="matrix dimension n as a power of two">
+    <span class="nval" id="nval"></span>
+  </div>
+
+  <table class="ops" id="opstable"></table>
+
+  <div class="bars" id="bars"></div>
+  <p class="payoff" id="payoff"></p>
+  <p class="fitline" id="fitline"></p>
+</figure>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const GPUS = {
+    b200: { ra: 2250, bw: 8, note: 'B200 dense BF16' },
+    h100: { ra: 1979, bw: 3.35, note: 'H100 dense FP16' }
+  };
+  let mode = 'b200';
+
+  const fmtT = s => {
+    if (s >= 1e-3) return (s*1e3).toFixed(2) + ' ms';
+    if (s >= 1e-6) return (s*1e6).toFixed(2) + ' µs';
+    return (s*1e9).toFixed(2) + ' ns';
+  };
+  const fmtBig = v => v >= 1e12 ? (v/1e12).toFixed(2)+'e12' : v >= 1e9 ? (v/1e9).toFixed(2)+' B' : v >= 1e6 ? (v/1e6).toFixed(2)+' M' : Math.round(v).toLocaleString();
+
+  function compute(){
+    const n = Math.pow(2, +$('nslide').value);
+    const Ra = +$('ra').value * 1e12;
+    const Rm = (+$('bw').value * 1e12) / +$('bytes').value;
+    const Istar = Ra / Rm;
+    $('istar').textContent = 'I* = Ra/Rm ≈ ' + Math.round(Istar);
+    $('nval').textContent = 'n = ' + n.toLocaleString();
+
+    // matmul
+    const Wmm = 2*n**3, Mmm = 3*n**2;
+    const taMM = Wmm/Ra, tmMM = Mmm/Rm;
+    const tMM = Math.max(taMM, tmMM);
+    const mmBound = taMM > tmMM ? 'compute-bound' : 'memory-bound';
+    // norm over n rows
+    const Wnm = 3*n**2, Mnm = 2*n**2;
+    const taNM = Wnm/Ra, tmNM = Mnm/Rm;
+    const tNM = Math.max(taNM, tmNM);
+    const nmBound = taNM > tmNM ? 'compute-bound' : 'memory-bound';
+
+    $('opstable').innerHTML =
+      '<tr><th>quantity</th><th class="hdr-mm">matmul</th><th class="hdr-nm">norm (n rows)</th></tr>' +
+      '<tr><td>W — operations</td><td>' + fmtBig(Wmm) + '</td><td>' + fmtBig(Wnm) + '</td></tr>' +
+      '<tr><td>M — numbers moved</td><td>' + fmtBig(Mmm) + '</td><td>' + fmtBig(Mnm) + '</td></tr>' +
+      '<tr><td>t<sub>a</sub> = W/R<sub>a</sub></td><td>' + fmtT(taMM) + '</td><td>' + fmtT(taNM) + '</td></tr>' +
+      '<tr><td>t<sub>m</sub> = M/R<sub>m</sub></td><td>' + fmtT(tmMM) + '</td><td>' + fmtT(tmNM) + '</td></tr>' +
+      '<tr><td>op time = max(t<sub>a</sub>, t<sub>m</sub>)</td><td><b>' + fmtT(tMM) + '</b></td><td><b>' + fmtT(tNM) + '</b></td></tr>' +
+      '<tr class="verdict"><td>verdict</td><td>' + mmBound + '</td><td>' + nmBound + '</td></tr>';
+
+    // bars: sequential vs overlapped
+    const seq = tMM + tNM, ovl = Math.max(tMM, tNM);
+    const share = tNM/seq*100;
+    const mmPct = tMM/seq*100, nmPct = tNM/seq*100;
+    $('bars').innerHTML =
+      '<div class="blabel"><span>sequential — sum</span><span style="font-family:var(--mono)">' + fmtT(seq) + '</span></div>' +
+      '<div class="track" role="img" aria-label="Sequential schedule: matmul then norm laid end to end.">' +
+        '<div class="seg mm" style="left:0; width:' + mmPct + '%"><span>matmul</span></div>' +
+        '<div class="seg nm" style="left:' + mmPct + '%; width:' + nmPct + '%"><span>' + (nmPct > 7 ? 'norm' : '') + '</span></div>' +
+      '</div>' +
+      '<div class="blabel"><span>overlapped — max</span><span style="font-family:var(--mono)">' + fmtT(ovl) + '</span></div>' +
+      '<div class="track" role="img" aria-label="Overlapped schedule: the norm rides inside the matmul; total time is the max.">' +
+        '<div class="seg mm" style="left:0; width:' + (tMM/seq*100) + '%"><span>matmul — norm hidden inside</span></div>' +
+      '</div>';
+
+    const idle = tMM - tmMM;
+    const fits = idle > 0 ? idle / tmNM : 0;
+    $('payoff').innerHTML = 'Sequentially, the norm costs <b>' + share.toFixed(1) + '%</b> of the layer. Overlapped, the total collapses from sum to max and that share drops to <b class="saved">' +
+      ((1 - ovl/seq)*100).toFixed(1) + '% saved</b>' + (ovl === tMM ? ' — the norm vanishes into the matmul\u2019s shadow.' : ' — at this n the norm is the longer job, so it shelters the matmul instead!');
+    $('fitline').innerHTML = 'courier idle during matmul: ' + (idle > 0 ? fmtT(idle) + ' (' + (idle/tMM*100).toFixed(1) + '%) — the norm\u2019s carrying fits in it ' + fits.toFixed(1) + '× (closed form: n/I* − 3/2 = ' + (Math.pow(2,+$('nslide').value)/Istar - 1.5).toFixed(1) + ')' : 'none — the matmul itself is memory-bound at this n; nothing to hide behind');
+  }
+
+  document.querySelectorAll('#iw2 .gpubtns button').forEach(b => b.addEventListener('click', () => {
+    mode = b.dataset.gpu;
+    document.querySelectorAll('#iw2 .gpubtns button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    if (GPUS[mode]) { $('ra').value = GPUS[mode].ra; $('bw').value = GPUS[mode].bw; $('bytes').value = 2; }
+    compute();
+  }));
+  ['ra','bw','bytes','nslide'].forEach(id => $(id).addEventListener('input', () => {
+    if (id !== 'nslide' && mode !== 'custom') {
+      mode = 'custom';
+      document.querySelectorAll('#iw2 .gpubtns button').forEach(x => x.setAttribute('aria-pressed', x.dataset.gpu === 'custom' ? 'true' : 'false'));
+    }
+    compute();
+  }));
+
+  compute();
+})();
+</script>
+</body>
+</html>

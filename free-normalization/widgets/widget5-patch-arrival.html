@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 5 — Patches arrive, counters fill, the division waits</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --matmul: #2B5BA8; --norm: #C4552D; --machine: #8A8A93;
+    --hairline: #E4E1DA; --good: #2E7D4F; --bad: #B3261E;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto; position: relative;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); }
+  .iw .modes { display: inline-flex; border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+  .iw .modes button { font-family: var(--mono); font-size: 11.5px; padding: 6px 12px; border: none; background: #fff; color: var(--ink-soft); cursor: pointer; }
+  .iw .modes button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .iw .main { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .iw .grid { display: grid; grid-template-columns: repeat(8, 34px); grid-auto-rows: 34px; gap: 2px; }
+  .iw .p { border: 0.5px solid var(--hairline); border-radius: 2px; background: #fff; position: relative;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-family: var(--mono); font-size: 10px; color: transparent; }
+  .iw .p.landed { background: rgba(43,91,168,.7); color: #fff; }
+  .iw .p.ondesk { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .iw .p.shipped { background: #EFEDE6; color: var(--ink-soft); }
+  .iw .p.divided { background: rgba(46,125,79,.15); border: 1px solid var(--good); color: var(--good); }
+  .iw .cts { display: flex; flex-direction: column; gap: 2px; }
+  .iw .ct { width: 132px; height: 34px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px; font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+    border: 0.5px solid var(--hairline); border-radius: 4px; background: #fff; }
+  .iw .ct.full { border-color: var(--good); color: var(--good); }
+  .iw .meters { margin-top: 14px; }
+  .iw .mrow { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12px; color: var(--ink-soft); }
+  .iw .mtrack { flex: 1; height: 16px; border: 1px solid var(--hairline); border-radius: 3px; background: #fff; position: relative; overflow: hidden; }
+  .iw .mfill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--matmul); opacity: .8; transition: width .3s; }
+  .iw .mfill.over { background: var(--bad); }
+  .iw .mcap { position: absolute; top: -3px; bottom: -3px; border-left: 2px dashed var(--ink); }
+  .iw .mlabel { font-family: var(--mono); font-size: 11px; min-width: 190px; text-align: right; }
+  .iw .status { margin-top: 12px; font-size: 13px; min-height: 38px; }
+  .iw .status b.bad { color: var(--bad); } .iw .status b.good { color: var(--good); }
+  .iw .controls { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .iw button.c { font-family: var(--mono); font-size: 12px; color: var(--ink); background: #fff;
+    border: 1px solid var(--hairline); border-radius: 3px; padding: 5px 12px; cursor: pointer; }
+  .iw button.c:focus-visible, .iw .modes button:focus-visible { outline: 2px solid var(--matmul); outline-offset: 1px; }
+  .iw .traffic { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin-left: auto; }
+  /* zoom overlay */
+  .iw .zoom { position: absolute; inset: 12px; background: rgba(253,252,249,.97); border: 1px solid var(--hairline);
+    border-radius: 6px; padding: 18px; z-index: 5; }
+  .iw .zoom h4 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+  .iw .zoom .zgrid { display: grid; grid-template-columns: repeat(4, 44px); grid-auto-rows: 32px; gap: 3px; margin: 8px 0; }
+  .iw .zoom .zc { border: 0.5px solid var(--hairline); border-radius: 3px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 12px; background: #fff; }
+  .iw .zoom .zc.hot { border: 2px solid var(--norm); color: var(--norm); }
+  .iw .zoom .zline { font-family: var(--mono); font-size: 12px; min-height: 20px; margin: 6px 0; }
+  .iw .zoom .zclose { position: absolute; top: 10px; right: 12px; }
+  .iw .zoom .znote { font-size: 12px; color: var(--ink-soft); font-style: italic; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw" id="iw5">
+  <h3>Patches arrive. Counters fill. The division waits.</h3>
+  <p class="sub">The matrix C as an 8×8 grid of patches (standing in for 32×32; each band of rows needs 8 deposits here, standing in for 32). Press play — patches land in scattered order. <b>Click any landed patch</b> to zoom into what a deposit actually is.</p>
+
+  <div class="modes" role="group" aria-label="Policy">
+    <button id="mship" aria-pressed="true">ship as you go — the real rhythm</button>
+    <button id="mhold" aria-pressed="false">hold until divisible — the doomed plan</button>
+  </div>
+
+  <div class="main">
+    <div class="grid" id="grid" aria-label="Matrix C arriving patch by patch"></div>
+    <div class="cts" id="cts" aria-label="Row-band counters"></div>
+  </div>
+
+  <div class="meters">
+    <div class="mrow">
+      <span style="min-width:104px">desk (notebook)</span>
+      <div class="mtrack"><div class="mfill" id="deskfill"></div><div class="mcap" style="left:100%"></div></div>
+      <span class="mlabel" id="desklabel"></span>
+    </div>
+  </div>
+
+  <p class="status" id="status" aria-live="polite">Choose a policy and press play.</p>
+
+  <div class="controls">
+    <button class="c" id="step">step</button>
+    <button class="c" id="play">play</button>
+    <button class="c" id="reset">reset</button>
+    <span class="traffic" id="traffic"></span>
+  </div>
+
+  <div class="zoom" id="zoom" hidden>
+    <button class="c zclose" id="zclose">close</button>
+    <h4 id="ztitle">Inside one patch</h4>
+    <p class="znote">A patch holds entries of several different rows at once (4×4 here, 128×128 in reality). Watch each row-slice report to its counter:</p>
+    <div class="zgrid" id="zgrid"></div>
+    <div class="zline" id="zline"></div>
+    <p class="znote">Each deposit is a whole slice compressed to one number — squared, summed, sent. The entries themselves never travel to the counter.</p>
+  </div>
+</figure>
+
+<script>
+(function(){
+  const N = 8, DESK_CAP = 114000, PATCH_NUMS = 16384;
+  const $ = id => document.getElementById(id);
+  const grid = $('grid'), cts = $('cts');
+  let order = [], step = -1, timer = null, mode = 'ship', dead = false;
+  let bandCount = Array(N).fill(0), deskNums = 0, crossings = 0, divided = Array(N).fill(false);
+  const cells = [], bands = [];
+
+  for (let r = 0; r < N; r++){
+    for (let c = 0; c < N; c++){
+      const d = document.createElement('div');
+      d.className = 'p'; d.textContent = '';
+      d.addEventListener('click', () => { if (d.classList.contains('landed') || d.classList.contains('shipped') || d.classList.contains('divided')) openZoom(r); });
+      grid.appendChild(d); cells.push(d);
+    }
+    const k = document.createElement('div');
+    k.className = 'ct';
+    k.innerHTML = '<span>band ' + (r+1) + '</span><span class="v">0 / 8</span>';
+    cts.appendChild(k); bands.push(k);
+  }
+
+  function shuffle(){
+    order = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) order.push([r,c]);
+    for (let i = order.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+  }
+
+  function fmtK(v){ return v >= 1000 ? Math.round(v/1000) + 'k' : v; }
+
+  function renderMeters(){
+    const pct = Math.min(100, deskNums / DESK_CAP * 100);
+    const fill = $('deskfill');
+    fill.style.width = pct + '%';
+    fill.classList.toggle('over', deskNums > DESK_CAP);
+    $('desklabel').textContent = fmtK(deskNums) + ' / 114k numbers' + (deskNums > DESK_CAP ? ' — OVERFLOW' : '');
+    $('traffic').textContent = 'library crossings: ' + crossings + ' patch-loads';
+  }
+
+  function doStep(){
+    if (dead || step + 1 >= order.length){ stopPlay(); return; }
+    step++;
+    const [r, c] = order[step];
+    const cell = cells[r*N + c];
+    cell.classList.add('landed');
+
+    if (mode === 'ship'){
+      // brief desk visit, then ship out un-divided
+      cell.classList.add('ondesk');
+      setTimeout(() => {
+        cell.classList.remove('ondesk', 'landed');
+        cell.classList.add('shipped');
+        cell.textContent = '';
+      }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 260);
+      crossings += 1; // shipped out once
+      bandCount[r]++;
+      const v = bands[r].querySelector('.v');
+      v.textContent = bandCount[r] + ' / 8';
+      if (bandCount[r] === N){
+        bands[r].classList.add('full');
+        v.textContent = '8 / 8 ÷';
+        // the sting: haul the band back for its division
+        divided[r] = true;
+        crossings += 2 * N; // back in + out again, all 8 patches
+        for (let cc = 0; cc < N; cc++){
+          const b = cells[r*N + cc];
+          setTimeout(() => { b.classList.remove('shipped'); b.classList.add('divided'); b.textContent = '÷'; },
+            matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 420);
+        }
+        $('status').innerHTML = 'Band ' + (r+1) + ' complete — but its patches are all in the library, un-divided. The courier hauls all 8 <b class="bad">back in</b>, divides, and ships them <b class="bad">out again</b>: +16 crossings. <b>The movement bill, re-purchased.</b>';
+      } else if (step === order.length - 1){
+        $('status').innerHTML = 'Done — every patch crossed the library <b class="bad">three times</b> (out, back, out) instead of once. Total: ' + crossings + ' crossings vs 64 if division were free. <b>This is the prison §7.3 escapes.</b>';
+      }
+    } else {
+      // hold until divisible
+      cell.classList.add('ondesk');
+      deskNums += PATCH_NUMS;
+      bandCount[r]++;
+      bands[r].querySelector('.v').textContent = bandCount[r] + ' / 8';
+      if (deskNums > DESK_CAP){
+        dead = true;
+        stopPlay();
+        $('status').innerHTML = '<b class="bad">Desk overflow at patch ' + (step+1) + '.</b> Divisible rows so far: <b>zero</b> — every band is still incomplete, nothing may leave, and the notebook is already beyond capacity (' + fmtK(deskNums) + ' of 114k). The hold-until-divisible policy dies before a single division fires. And this grid is only 8×8 — the real 32-wide bands are far worse.';
+      } else {
+        $('status').innerHTML = 'Holding ' + (step+1) + ' patches on the desk (' + fmtK(deskNums) + ' numbers). Divisible rows: <b>zero</b> — no band is complete yet.';
+      }
+    }
+    renderMeters();
+  }
+
+  function stopPlay(){ if (timer){ clearInterval(timer); timer = null; $('play').textContent = 'play'; } }
+
+  function reset(){
+    stopPlay(); step = -1; dead = false; deskNums = 0; crossings = 0;
+    bandCount.fill(0); divided.fill(false);
+    cells.forEach(c => { c.className = 'p'; c.textContent = ''; });
+    bands.forEach((b, i) => { b.classList.remove('full'); b.querySelector('.v').textContent = '0 / 8'; });
+    shuffle(); renderMeters();
+    $('status').textContent = mode === 'ship'
+      ? 'The real rhythm: land → ship to the library un-divided → reuse the desk. Watch the crossings pile up when bands complete.'
+      : 'The doomed plan: hold every patch on the desk until its band completes. Watch the desk meter.';
+  }
+
+  function setMode(m){
+    mode = m;
+    $('mship').setAttribute('aria-pressed', m === 'ship');
+    $('mhold').setAttribute('aria-pressed', m === 'hold');
+    reset();
+  }
+  $('mship').addEventListener('click', () => setMode('ship'));
+  $('mhold').addEventListener('click', () => setMode('hold'));
+  $('step').addEventListener('click', () => { stopPlay(); doStep(); });
+  $('play').addEventListener('click', () => {
+    if (timer){ stopPlay(); return; }
+    if (dead || step + 1 >= order.length) reset();
+    timer = setInterval(doStep, matchMedia('(prefers-reduced-motion: reduce)').matches ? 800 : 340);
+    $('play').textContent = 'pause';
+  });
+  $('reset').addEventListener('click', reset);
+
+  // ---- zoom moment ----
+  const zvals = [[2,1,3,1],[1,2,2,1],[3,1,1,2],[2,2,1,3]];
+  let ztimer = null;
+  function openZoom(band){
+    $('zoom').hidden = false;
+    $('ztitle').textContent = 'Inside one patch of band ' + (band+1);
+    const zg = $('zgrid'); zg.innerHTML = '';
+    zvals.forEach(row => row.forEach(v => {
+      const d = document.createElement('div'); d.className = 'zc'; d.textContent = v; zg.appendChild(d);
+    }));
+    $('zline').textContent = '';
+    let r = 0;
+    const stepRow = () => {
+      if (r >= 4){ clearInterval(ztimer); ztimer = null; $('zline').textContent = 'all four slices reported — four deposits, four counters, zero entries moved'; return; }
+      [...zg.children].forEach((c, i) => c.classList.toggle('hot', Math.floor(i/4) === r));
+      const vals = zvals[r], s = vals.reduce((a,v) => a + v*v, 0);
+      $('zline').textContent = 'row ' + (r+1) + ' slice: ' + vals.map(v => v + '\u00b2').join(' + ') + ' = ' + s + '  \u2192  deposited to its counter';
+      r++;
+    };
+    stepRow();
+    ztimer = setInterval(stepRow, matchMedia('(prefers-reduced-motion: reduce)').matches ? 1600 : 1100);
+  }
+  $('zclose').addEventListener('click', () => { $('zoom').hidden = true; if (ztimer){ clearInterval(ztimer); ztimer = null; } });
+
+  shuffle(); reset();
+})();
+</script>
+</body>
+</html>

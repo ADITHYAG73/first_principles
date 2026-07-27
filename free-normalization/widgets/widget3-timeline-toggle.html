@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 3 — Sum vs max: the two workers' timesheets</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --matmul: #2B5BA8; --norm: #C4552D; --machine: #8A8A93;
+    --hairline: #E4E1DA; --good: #2E7D4F;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); }
+  .iw .toggle { display: inline-flex; border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+  .iw .toggle button { font-family: var(--mono); font-size: 12px; padding: 6px 14px; border: none; background: #fff; color: var(--ink-soft); cursor: pointer; }
+  .iw .toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .iw .toggle button:focus-visible { outline: 2px solid var(--matmul); outline-offset: -2px; }
+  .iw .lane { margin: 14px 0 4px; }
+  .iw .lane .lname { font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+  .iw .lane .track { position: relative; height: 34px; background: repeating-linear-gradient(135deg, #fff 0 6px, #F7F5F0 6px 12px); border: 1px solid var(--hairline); border-radius: 3px; }
+  .iw .seg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-family: var(--mono); font-size: 10.5px; white-space: nowrap; overflow: hidden;
+    transition: left .8s cubic-bezier(.4,0,.2,1), width .8s cubic-bezier(.4,0,.2,1); }
+  .iw .seg.mm { background: var(--matmul); }
+  .iw .seg.nm { background: var(--norm); }
+  .iw .seg.idlelabel { color: var(--ink-soft); background: transparent; font-style: italic; font-family: var(--serif); font-size: 11px; }
+  .iw .ruler { position: relative; height: 20px; margin-top: 8px; }
+  .iw .ruler .tick { position: absolute; top: 0; font-family: var(--mono); font-size: 10px; color: var(--ink-soft); transform: translateX(-50%); }
+  .iw .totalline { margin-top: 12px; font-size: 13.5px; }
+  .iw .totalline b.sum { color: var(--ink); }
+  .iw .totalline b.saved { color: var(--good); }
+  .iw .endmark { position: absolute; top: -6px; bottom: -6px; width: 0; border-left: 2px dashed var(--ink); transition: left .8s cubic-bezier(.4,0,.2,1); }
+  .iw .stagewrap { position: relative; }
+  @media (prefers-reduced-motion: reduce) { .iw .seg, .iw .endmark { transition: none !important; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw" id="iw3">
+  <h3>The two workers' timesheets</h3>
+  <p class="sub">One layer at n = 4096 on a B200: the matmul, then the norm of its n rows. Watch who is actually busy — and what happens when the norm's carrying is handed to the courier's idle stretch.</p>
+
+  <div class="toggle" role="group" aria-label="Schedule">
+    <button id="btnseq" aria-pressed="true">sequential — sum</button>
+    <button id="btnovl" aria-pressed="false">overlapped — max</button>
+  </div>
+
+  <div class="stagewrap" id="stage">
+    <div class="lane">
+      <div class="lname">engine — arithmetic (R<sub>a</sub>)</div>
+      <div class="track" id="laneE"></div>
+    </div>
+    <div class="lane">
+      <div class="lname">courier — data movement (R<sub>m</sub>)</div>
+      <div class="track" id="laneC"></div>
+    </div>
+    <div class="ruler" id="ruler"></div>
+  </div>
+
+  <p class="totalline" id="totalline"></p>
+</figure>
+
+<script>
+(function(){
+  // verified §5 numbers (B200, n = 4096), microseconds
+  const T = {
+    mmEngine: 61.1,   // t_a matmul — the matmul's length (compute-bound)
+    mmCarry:  12.6,   // t_m matmul — courier's work within it
+    nmCarry:   8.4,   // t_m norm — the norm is pure carrying
+    nmEngine:  0.02   // t_a norm — invisible
+  };
+  const seqTotal = T.mmEngine + T.nmCarry;   // 69.5
+  const ovlTotal = T.mmEngine;               // 61.1
+  const SCALE = 100 / seqTotal;              // percent per µs, fixed so the collapse is visible
+
+  const laneE = document.getElementById('laneE');
+  const laneC = document.getElementById('laneC');
+  const ruler = document.getElementById('ruler');
+  const totalline = document.getElementById('totalline');
+
+  function seg(parent, cls, label){
+    const d = document.createElement('div');
+    d.className = 'seg ' + cls;
+    d.textContent = label || '';
+    parent.appendChild(d);
+    return d;
+  }
+  const place = (el, fromUs, toUs) => {
+    el.style.left = (fromUs * SCALE) + '%';
+    el.style.width = ((toUs - fromUs) * SCALE) + '%';
+  };
+
+  // engine lane: matmul block + idle label during norm phase
+  const eMM = seg(laneE, 'mm', 'matmul — 61.1 µs of arithmetic');
+  const eIdle = seg(laneE, 'idlelabel', 'idle');
+  // courier lane: matmul carrying, long idle, norm carrying
+  const cMM = seg(laneC, 'mm', 'carrying for matmul — 12.6 µs');
+  const cIdle = seg(laneC, 'idlelabel', 'idle — 48.5 µs');
+  const cNM = seg(laneC, 'nm', 'norm — 8.4 µs');
+  // end-of-layer marker
+  const endmark = document.createElement('div');
+  endmark.className = 'endmark';
+  document.getElementById('stage').appendChild(endmark);
+
+  // ruler ticks
+  [0, 10, 20, 30, 40, 50, 60, 69.5].forEach(us => {
+    const t = document.createElement('div');
+    t.className = 'tick';
+    t.style.left = (us * SCALE) + '%';
+    t.textContent = us + ' µs';
+    ruler.appendChild(t);
+  });
+
+  function render(mode){
+    place(eMM, 0, T.mmEngine);
+    place(cMM, 0, T.mmCarry);
+    if (mode === 'seq'){
+      place(eIdle, T.mmEngine, seqTotal);
+      place(cIdle, T.mmCarry, T.mmEngine);
+      place(cNM, T.mmEngine, seqTotal);
+      endmark.style.left = (seqTotal * SCALE) + '%';
+      totalline.innerHTML = 'Total = t<span style="font-family:var(--mono)">mm</span> + t<span style="font-family:var(--mono)">norm</span> = 61.1 + 8.4 = <b class="sum">69.5 µs</b>. The engine finishes and then stands idle while the courier does the norm\u2019s carrying — a <b>sum</b> of two jobs.';
+    } else {
+      place(eIdle, T.mmEngine, T.mmEngine); // collapse
+      place(cNM, T.mmCarry, T.mmCarry + T.nmCarry);
+      place(cIdle, T.mmCarry + T.nmCarry, T.mmEngine);
+      endmark.style.left = (ovlTotal * SCALE) + '%';
+      totalline.innerHTML = 'Total = max(t<span style="font-family:var(--mono)">mm</span>, t<span style="font-family:var(--mono)">norm</span>) = <b class="sum">61.1 µs</b> — <b class="saved">8.4 µs saved, the norm\u2019s entire cost</b>. Same work done; the norm\u2019s carrying now rides inside the courier\u2019s idle stretch, and the layer ends when the engine does. The norm has vanished into the max.';
+    }
+  }
+
+  const bseq = document.getElementById('btnseq'), bovl = document.getElementById('btnovl');
+  function setMode(m){
+    bseq.setAttribute('aria-pressed', m === 'seq');
+    bovl.setAttribute('aria-pressed', m === 'ovl');
+    render(m);
+  }
+  bseq.addEventListener('click', () => setMode('seq'));
+  bovl.addEventListener('click', () => setMode('ovl'));
+
+  render('seq');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 6 — The workbench, now yours</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --matmul: #2B5BA8; --norm: #C4552D; --machine: #8A8A93;
+    --hairline: #E4E1DA; --good: #2E7D4F; --bad: #B3261E;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); }
+  .iw .tabs { display: inline-flex; border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+  .iw .tabs button { font-family: var(--mono); font-size: 11.5px; padding: 6px 12px; border: none; background: #fff; color: var(--ink-soft); cursor: pointer; }
+  .iw .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .iw .tabs button:focus-visible { outline: 2px solid var(--matmul); outline-offset: -2px; }
+  .iw .inputs { display: flex; gap: 22px; flex-wrap: wrap; align-items: center;
+    padding: 12px; background: #fff; border: 1px solid var(--hairline); border-radius: 5px; }
+  .iw .mat { text-align: center; }
+  .iw .mat .lbl { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+  .iw .m2 { display: grid; grid-template-columns: repeat(2, 52px); gap: 4px; }
+  .iw .m2 input { font-family: var(--mono); font-size: 13px; text-align: center; padding: 6px 2px;
+    border: 1px solid var(--hairline); border-radius: 3px; background: var(--paper); color: var(--ink); width: 100%; box-sizing: border-box; }
+  .iw .derived { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+  .iw .paths { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; }
+  .iw .path { flex: 1; min-width: 200px; border: 1px solid var(--hairline); border-radius: 5px; background: #fff; padding: 12px; }
+  .iw .path .pname { font-size: 12px; color: var(--ink-soft); margin-bottom: 8px; }
+  .iw .path .pexpr { font-family: var(--mono); font-size: 12px; margin-bottom: 8px; color: var(--ink); }
+  .iw .disp { display: grid; grid-template-columns: repeat(2, minmax(52px, auto)); gap: 4px; justify-content: center; }
+  .iw .disp span { font-family: var(--mono); font-size: 13px; text-align: center; padding: 7px 6px;
+    border: 0.5px solid var(--hairline); border-radius: 3px; background: var(--paper); }
+  .iw .verdict { margin-top: 14px; font-size: 13.5px; }
+  .iw .verdict b.ok { color: var(--good); } .iw .verdict b.no { color: var(--bad); }
+  .iw .extra { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-top: 8px; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw" id="iw6">
+  <h3>The workbench — now with your numbers</h3>
+  <p class="sub">Every identity in this article was tested on one small bench. Here is that bench, with the matrices editable. Type your own A and B and watch each experiment hold — or refuse to.</p>
+
+  <div class="tabs" role="group" aria-label="Experiment">
+    <button data-m="row" aria-pressed="true">row scaling — the theorem</button>
+    <button data-m="col" aria-pressed="false">column scaling — the affine</button>
+    <button data-m="ctr" aria-pressed="false">centering — LayerNorm</button>
+  </div>
+
+  <div class="inputs">
+    <div class="mat"><div class="lbl">A</div>
+      <div class="m2">
+        <input id="a11" type="number" value="3"><input id="a12" type="number" value="4">
+        <input id="a21" type="number" value="6"><input id="a22" type="number" value="8">
+      </div>
+    </div>
+    <div class="mat"><div class="lbl">B</div>
+      <div class="m2">
+        <input id="b11" type="number" value="1"><input id="b12" type="number" value="2">
+        <input id="b21" type="number" value="1"><input id="b22" type="number" value="0">
+      </div>
+    </div>
+    <div class="derived" id="derived"></div>
+  </div>
+
+  <div class="paths" id="paths"></div>
+  <p class="verdict" id="verdict" aria-live="polite"></p>
+  <p class="extra" id="extra"></p>
+</figure>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let mode = 'row';
+
+  const getA = () => [[+$('a11').value, +$('a12').value], [+$('a21').value, +$('a22').value]];
+  const getB = () => [[+$('b11').value, +$('b12').value], [+$('b21').value, +$('b22').value]];
+  const mul = (X, Y) => [
+    [X[0][0]*Y[0][0] + X[0][1]*Y[1][0], X[0][0]*Y[0][1] + X[0][1]*Y[1][1]],
+    [X[1][0]*Y[0][0] + X[1][1]*Y[1][0], X[1][0]*Y[0][1] + X[1][1]*Y[1][1]]
+  ];
+  const sub = (X, Y) => X.map((r, i) => r.map((v, j) => v - Y[i][j]));
+  const r3 = v => Math.abs(v) < 1e-9 ? 0 : Math.round(v*1000)/1000;
+  const eq = (X, Y) => X.every((r, i) => r.every((v, j) => Math.abs(v - Y[i][j]) < 1e-6));
+
+  function panel(name, expr, M){
+    return '<div class="path"><div class="pname">' + name + '</div><div class="pexpr">' + expr + '</div>' +
+      '<div class="disp"><span>' + r3(M[0][0]) + '</span><span>' + r3(M[0][1]) + '</span><span>' + r3(M[1][0]) + '</span><span>' + r3(M[1][1]) + '</span></div></div>';
+  }
+
+  function render(){
+    const A = getA(), B = getB(), AB = mul(A, B);
+    const s1 = Math.hypot(A[0][0], A[0][1]), s2 = Math.hypot(A[1][0], A[1][1]);
+    let html = '', verdict = '', extra = '', derived = '';
+
+    if (mode === 'row'){
+      if (s1 < 1e-9 || s2 < 1e-9){ $('paths').innerHTML=''; $('verdict').innerHTML = 'A has a zero row — its scaler would divide by zero. Give every row of A at least one nonzero entry.'; $('extra').textContent=''; $('derived').textContent=''; return; }
+      derived = 'A\u2019s row scalers: s\u2081 = ' + r3(s1) + ', s\u2082 = ' + r3(s2) + ' &nbsp; (D = diag(1/s\u2081, 1/s\u2082))';
+      const D = [[1/s1, 0], [0, 1/s2]];
+      const p1 = mul(mul(D, A), B);            // (DA)B
+      const p2 = mul(D, AB);                    // D(AB)
+      html = panel('Path 1 — normalize first', '(DA)B', p1) + panel('Path 2 — the back road', 'D(AB)', p2);
+      verdict = eq(p1, p2)
+        ? 'Same matrix, entry for entry. <b class="ok">The identity survives with your numbers</b> — associativity does not care what you typed.'
+        : 'Mismatch — which should be impossible; check for rounding extremes.';
+      extra = 'the lazy schedule this licenses: raw AB at full speed, then one multiply per row at the end.';
+    }
+
+    if (mode === 'col'){
+      const G = [[10, 0], [0, 100]];
+      derived = 'G = diag(10, 100) — the learned per-column knobs';
+      const spec = mul(mul(A, G), B);           // (AG)B — what we want
+      const naive = mul(AB, G);                 // (AB)G — the lazy imitation
+      const inner = mul(A, mul(G, B));          // A(GB) — where associativity actually puts it
+      html = panel('The spec', '(AG)B — scale A\u2019s columns, then multiply', spec) +
+             panel('The lazy imitation', '(AB)G — raw product, scale after', naive) +
+             panel('Associativity\u2019s offer', 'A(GB) — G pushed inward onto B', inner);
+      verdict = (eq(spec, naive) ? 'Coincidence for this B — try changing B!' :
+        'The lazy imitation <b class="no">does not match the spec</b> — scaling the product\u2019s columns is a different function. ') +
+        (eq(spec, inner) ? 'And associativity\u2019s rearrangement matches the spec exactly — but look where G landed: <b>inside, on B, before the multiply</b>. The raw product AB appears nowhere. No cheap epilogue exists.' : '');
+      extra = 'first failure mode: the escape hatch opens on the wrong side of the building.';
+    }
+
+    if (mode === 'ctr'){
+      const m1 = (A[0][0] + A[0][1]) / 2, m2 = (A[1][0] + A[1][1]) / 2;
+      derived = 'A\u2019s row means: \u0101\u2081 = ' + r3(m1) + ', \u0101\u2082 = ' + r3(m2) +
+        ' &nbsp; B\u2019s column sums (\u{1D7D9}\u1D40B): (' + r3(B[0][0]+B[1][0]) + ', ' + r3(B[0][1]+B[1][1]) + ')';
+      const Ac = [[A[0][0]-m1, A[0][1]-m1], [A[1][0]-m2, A[1][1]-m2]];
+      const p1 = mul(Ac, B);                                        // the spec
+      const naiveCorr = [[m1, m1], [m2, m2]];
+      const p2 = sub(AB, naiveCorr);                                // naive back road
+      const cs = [B[0][0]+B[1][0], B[0][1]+B[1][1]];
+      const repairedCorr = [[m1*cs[0], m1*cs[1]], [m2*cs[0], m2*cs[1]]];
+      const p3 = sub(AB, repairedCorr);                             // repaired road
+      html = panel('Path 1 — the spec', 'A_c B — center A, then multiply', p1) +
+             panel('Naive back road', 'AB − (means spread across rows)', p2) +
+             panel('Repaired road', 'AB − \u0101(\u{1D7D9}\u1D40B)', p3);
+      verdict = (eq(p1, p2)
+        ? 'They match?! Your B\u2019s column sums must both be 1 — a special B where the constant slides through unwarped. Change B and watch it break.'
+        : 'The naive road <b class="no">misses</b> — the constant passed through B and came out warped by B\u2019s column sums. ') +
+        (eq(p1, p3) ? 'The repaired road <b class="ok">recovers the spec exactly</b> — at the price of a second counter, B\u2019s column sums, and a correction over every entry.' : '');
+      extra = 'second failure mode: survives the journey, arrives mangled.';
+    }
+
+    $('derived').innerHTML = derived;
+    $('paths').innerHTML = html;
+    $('verdict').innerHTML = verdict;
+    $('extra').textContent = extra;
+  }
+
+  document.querySelectorAll('#iw6 .tabs button').forEach(b => b.addEventListener('click', () => {
+    mode = b.dataset.m;
+    document.querySelectorAll('#iw6 .tabs button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    render();
+  }));
+  ['a11','a12','a21','a22','b11','b12','b21','b22'].forEach(id => $(id).addEventListener('input', render));
+
+  render();
+})();
+</script>
+</body>
+</html>

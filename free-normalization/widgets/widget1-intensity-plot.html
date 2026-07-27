@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 1 — Arithmetic intensity: matmul vs norm</title>
+<style>
+  /* ---- widget-scoped tokens (suite-wide) ---- */
+  .iw {
+    --paper: #FDFCF9;
+    --ink: #1A1A1E;
+    --ink-soft: #5A5A63;
+    --matmul: #2B5BA8;
+    --matmul-wash: rgba(43, 91, 168, 0.06);
+    --norm: #C4552D;
+    --machine: #8A8A93;
+    --hairline: #E4E1DA;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 20px 20px 14px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; letter-spacing: .01em; }
+  .iw .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); }
+  .iw svg { display: block; width: 100%; height: auto; }
+  .iw .axis text { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-soft); }
+  .iw .axis line, .iw .axis path { stroke: var(--hairline); }
+  .iw .curve-label { font-family: var(--mono); font-size: 11px; }
+  .iw .receipt {
+    position: absolute; pointer-events: none;
+    background: #fff; border: 1px solid var(--hairline); border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(26,26,30,.08);
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.55;
+    padding: 8px 10px; min-width: 158px; color: var(--ink);
+  }
+  .iw .receipt .rrow { display: flex; justify-content: space-between; gap: 14px; }
+  .iw .receipt .rrule { border-top: 1px dashed var(--hairline); margin: 4px 0; }
+  .iw .receipt .verdict { font-family: var(--serif); font-style: italic; font-size: 11px; margin-top: 3px; }
+  .iw .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  .iw .presets span { font-size: 12px; color: var(--ink-soft); margin-right: 2px; }
+  .iw .presets button {
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink);
+    background: #fff; border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 3px 9px; cursor: pointer;
+  }
+  .iw .presets button:hover { border-color: var(--machine); }
+  .iw .presets button:focus-visible { outline: 2px solid var(--matmul); outline-offset: 1px; }
+  .iw .hint { font-size: 11.5px; color: var(--ink-soft); margin-top: 8px; }
+  .iw .stage { position: relative; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw" id="iw1" style="position:relative;">
+  <h3>Work per trip, as the matrices grow</h3>
+  <p class="sub">Arithmetic intensity <i>I</i> = <span style="font-family:var(--mono)">W / M</span> against dimension <i>n</i>. Hover or use ←/→ to read the ledger at any <i>n</i>.</p>
+  <div class="stage">
+    <svg id="iwsvg" viewBox="0 0 680 360" role="img" aria-label="Plot of arithmetic intensity versus matrix dimension. The matmul curve rises without bound and crosses the machine's balance line near n equals 843; the norm's line stays flat at three halves forever.">
+      <!-- rendered by script -->
+    </svg>
+    <div class="receipt" id="iwreceipt" hidden></div>
+  </div>
+  <div class="presets" role="group" aria-label="Preset values of n">
+    <span>jump to:</span>
+    <button data-n="1">n=1</button>
+    <button data-n="2">n=2</button>
+    <button data-n="3">n=3</button>
+    <button data-n="843">n=843 · crossover</button>
+    <button data-n="4096">n=4096 · LLM scale</button>
+  </div>
+  <p class="hint">Solid rising curve: matmul, exact <span style="font-family:var(--mono)">(2n−1)/3</span> — the receipt shows its approximation <span style="font-family:var(--mono)">2n/3</span> alongside, so you can watch the gap between them shrink from noticeable (at n=2: 1 vs 1.33) to nothing as n grows. Solid floor line: the norm, pinned near <span style="font-family:var(--mono)">3/2</span>. Dashed line: the machine's balance point <span style="font-family:var(--mono)">I* ≈ 562</span> (B200). Above it, an operation is compute-bound; below it, memory-bound.</p>
+</figure>
+
+<script>
+(function(){
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('iwsvg');
+  const receipt = document.getElementById('iwreceipt');
+  const stage = svg.parentNode;
+
+  // geometry
+  const W = 680, H = 360, padL = 56, padR = 96, padT = 18, padB = 40;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+
+  // scales: x = log2(n), n in [1, 8192]; y linear I in [0, 3000]
+  const nMin = 1, nMax = 8192, iMax = 3000;
+  const x = n => padL + (Math.log2(n) - Math.log2(nMin)) / (Math.log2(nMax) - Math.log2(nMin)) * plotW;
+  const y = i => padT + plotH - Math.min(i, iMax) / iMax * plotH;
+  const nFromPx = px => Math.round(Math.pow(2, Math.log2(nMin) + (px - padL) / plotW * (Math.log2(nMax) - Math.log2(nMin))));
+
+  const ISTAR = 562;
+  const Iexact = n => (2*n - 1) / 3;
+  const Iapprox = n => 2*n / 3;
+  const Inorm  = n => (3*n + 1) / (2*n);
+
+  function el(name, attrs, parent){
+    const e = document.createElementNS(svgNS, name);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+
+  // region washes: memory-bound below I*, compute-bound above
+  el('rect', { x: padL, y: padT, width: plotW, height: y(ISTAR) - padT, fill: 'var(--matmul-wash)' });
+  el('text', { x: padL + 8, y: padT + 16, 'font-family': 'var(--mono)', 'font-size': 10.5, fill: 'var(--ink-soft)' }).textContent = 'compute-bound  (I > I*)';
+  el('text', { x: padL + 8, y: y(ISTAR) + 18, 'font-family': 'var(--mono)', 'font-size': 10.5, fill: 'var(--ink-soft)' }).textContent = 'memory-bound  (I < I*)';
+
+  // axes
+  const axes = el('g', { class: 'axis' });
+  el('line', { x1: padL, y1: padT + plotH, x2: padL + plotW, y2: padT + plotH, stroke: 'var(--hairline)' }, axes);
+  el('line', { x1: padL, y1: padT, x2: padL, y2: padT + plotH, stroke: 'var(--hairline)' }, axes);
+  [1,2,8,32,128,512,2048,8192].forEach(n => {
+    el('line', { x1: x(n), y1: padT + plotH, x2: x(n), y2: padT + plotH + 4, stroke: 'var(--hairline)' }, axes);
+    const t = el('text', { x: x(n), y: padT + plotH + 16, 'text-anchor': 'middle' }, axes);
+    t.textContent = n;
+  });
+  el('text', { x: padL + plotW/2, y: H - 6, 'text-anchor': 'middle' }, axes).textContent = 'n  (log scale)';
+  [0, 562, 1000, 2000, 3000].forEach(i => {
+    el('line', { x1: padL - 4, y1: y(i), x2: padL, y2: y(i), stroke: 'var(--hairline)' }, axes);
+    const t = el('text', { x: padL - 8, y: y(i) + 3.5, 'text-anchor': 'end' }, axes);
+    t.textContent = i === 562 ? 'I*' : i;
+  });
+
+  // machine line I*
+  el('line', { x1: padL, y1: y(ISTAR), x2: padL + plotW, y2: y(ISTAR), stroke: 'var(--machine)', 'stroke-width': 1.4, 'stroke-dasharray': '7 5' });
+  el('text', { x: padL + plotW + 6, y: y(ISTAR) + 3.5, class: 'curve-label', fill: 'var(--machine)' }).textContent = 'I* ≈ 562';
+
+  // curves
+  function path(fn, from){
+    let d = '';
+    for (let k = 0; k <= 240; k++){
+      const n = Math.pow(2, Math.log2(from) + k/240 * (Math.log2(nMax) - Math.log2(from)));
+      d += (k ? 'L' : 'M') + x(n).toFixed(1) + ' ' + y(fn(n)).toFixed(1);
+    }
+    return d;
+  }
+  el('path', { d: path(Iexact, 1), fill: 'none', stroke: 'var(--matmul)', 'stroke-width': 2.2 });
+  el('path', { d: path(Inorm, 1), fill: 'none', stroke: 'var(--norm)', 'stroke-width': 2.2 });
+
+  // end labels (never color-only)
+  el('text', { x: padL + plotW + 6, y: y(Iexact(8192)) + 4, class: 'curve-label', fill: 'var(--matmul)' }).textContent = 'matmul';
+  el('text', { x: padL + plotW + 6, y: y(Inorm(8192)) + 4, class: 'curve-label', fill: 'var(--norm)' }).textContent = 'norm 3/2';
+
+  // crossover marker at (2n-1)/3 = 562 → n = 843.5
+  const nCross = 843;
+  el('circle', { cx: x(nCross), cy: y(ISTAR), r: 3.5, fill: 'var(--paper)', stroke: 'var(--ink)', 'stroke-width': 1.4 });
+  el('text', { x: x(nCross) + 7, y: y(ISTAR) - 22, class: 'curve-label', fill: 'var(--ink)' }).textContent = 'matmul escapes where (2n−1)/3 = I*';
+  el('text', { x: x(nCross) + 7, y: y(ISTAR) - 8, class: 'curve-label', fill: 'var(--ink)' }).textContent = '→ n ≈ 843';
+
+  // crosshair + receipt
+  const cross = el('g', { visibility: 'hidden' });
+  const vline = el('line', { y1: padT, y2: padT + plotH, stroke: 'var(--ink)', 'stroke-width': .8, opacity: .35 }, cross);
+  const dotM = el('circle', { r: 4, fill: 'var(--matmul)' }, cross);
+  const dotN = el('circle', { r: 4, fill: 'var(--norm)' }, cross);
+
+  const fmt = v => v >= 1e9 ? (v/1e9).toFixed(2)+' B' : v >= 1e6 ? (v/1e6).toFixed(2)+' M' : v >= 1e4 ? (v/1e3).toFixed(1)+' k' : String(Math.round(v*100)/100);
+
+  let curN = null;
+  function show(n){
+    n = Math.max(nMin, Math.min(nMax, n));
+    curN = n;
+    const Wm = 2*n**3 - n**2, Mm = 3*n**2, Ie = Iexact(n), In = Inorm(n);
+    const px = x(n);
+    cross.setAttribute('visibility', 'visible');
+    vline.setAttribute('x1', px); vline.setAttribute('x2', px);
+    dotM.setAttribute('cx', px); dotM.setAttribute('cy', y(Ie));
+    dotN.setAttribute('cx', px); dotN.setAttribute('cy', y(In));
+
+    receipt.hidden = false;
+    receipt.innerHTML =
+      '<div class="rrow"><span>n</span><b>' + n + '</b></div>' +
+      '<div class="rrule"></div>' +
+      '<div class="rrow"><span>W (matmul)</span><span>' + fmt(Wm) + '</span></div>' +
+      '<div class="rrow"><span>M (matmul)</span><span>' + fmt(Mm) + '</span></div>' +
+      '<div class="rrow"><span>I exact (2n−1)/3</span><b>' + (Math.round(Ie*100)/100) + '</b></div>' +
+      '<div class="rrow"><span>I approx 2n/3</span><span>' + (Math.round(Iapprox(n)*100)/100) + '</span></div>' +
+      '<div class="rrow"><span>I (norm)</span><b style="color:var(--norm)">' + (Math.round(In*100)/100) + '</b></div>' +
+      '<div class="rrule"></div>' +
+      '<div class="verdict">matmul: ' + (Ie > ISTAR ? 'compute-bound' : 'memory-bound') + ' · norm: memory-bound</div>';
+    const stageRect = stage.getBoundingClientRect();
+    const svgRect = svg.getBoundingClientRect();
+    const scale = svgRect.width / W;
+    let left = (px + 14) * scale;
+    if (left + 175 > stageRect.width) left = (px * scale) - 175;
+    receipt.style.left = left + 'px';
+    receipt.style.top = Math.max(4, (y(Math.max(Ie, ISTAR)) * scale) - 10) + 'px';
+  }
+
+  function clearReading(){
+    curN = null;
+    cross.setAttribute('visibility', 'hidden');
+    receipt.hidden = true;
+  }
+  svg.addEventListener('mousemove', e => {
+    const r = svg.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (W / r.width);
+    if (px < padL || px > padL + plotW) return;
+    show(nFromPx(px));
+  });
+  svg.addEventListener('mouseleave', clearReading);
+
+  document.querySelectorAll('#iw1 .presets button').forEach(b =>
+    b.addEventListener('click', () => show(+b.dataset.n)));
+
+  svg.setAttribute('tabindex', '0');
+  svg.addEventListener('keydown', e => {
+    if (curN === null) { show(4096); return; }
+    if (e.key === 'ArrowRight'){ show(Math.round(curN * 1.12) + 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft'){ show(Math.max(1, Math.round(curN / 1.12) - 1)); e.preventDefault(); }
+  });
+
+  // no default reading: the plot rests clean until the reader interacts
+})();
+</script>
+</body>
+</html>

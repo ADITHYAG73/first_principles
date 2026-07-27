@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 4 — Block matmul, one step at a time</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --matmul: #2B5BA8; --norm: #C4552D; --machine: #8A8A93;
+    --hairline: #E4E1DA; --good: #2E7D4F; --wash: rgba(43,91,168,.08);
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); }
+  .iw .matrices { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+  .iw .mat { text-align: center; }
+  .iw .mat .mname { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-bottom: 6px; }
+  .iw .grid { display: grid; grid-template-columns: repeat(4, 34px); grid-auto-rows: 34px; gap: 3px; }
+  .iw .tile { border: 1px solid var(--hairline); border-radius: 3px; background: #fff; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 9.5px; color: var(--ink-soft); }
+  .iw .tile.band { background: rgba(43,91,168,.05); }
+  .iw .tile.activeA, .iw .tile.activeB { border: 2px solid var(--matmul); background: var(--wash); color: var(--matmul); }
+  .iw .tile .fetches { position: absolute; top: 1px; right: 3px; font-size: 8.5px; color: var(--machine); }
+  .iw select { font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--hairline); border-radius: 3px; background: #fff; color: var(--ink); padding: 4px 6px; }
+  .iw .tile.activeC { border: 2px solid var(--norm); color: var(--norm); }
+  .iw .tile.shipped { background: #F1EFE9; }
+  .iw .tile.shipped::after { content: '✓'; position: absolute; right: 2px; bottom: 0; font-size: 9px; color: var(--good); }
+  .iw .opsign { font-size: 22px; color: var(--ink-soft); }
+  .iw .formula { text-align: center; font-family: var(--mono); font-size: 13px; margin: 14px 0 4px; min-height: 20px; }
+  .iw .formula b { color: var(--matmul); } .iw .formula i { color: var(--norm); font-style: normal; }
+  .iw .notebook { margin-top: 12px; border: 1px solid var(--hairline); border-radius: 5px; background: #fff; padding: 10px 12px; }
+  .iw .notebook .nb-title { font-size: 11px; color: var(--ink-soft); margin-bottom: 6px; }
+  .iw .notebook .nb-slots { display: flex; gap: 10px; align-items: center; font-family: var(--mono); font-size: 12px; }
+  .iw .nb-slot { border: 1px dashed var(--hairline); border-radius: 3px; padding: 6px 10px; min-width: 74px; text-align: center; }
+  .iw .nb-slot.full { border-style: solid; }
+  .iw .nb-slot.slotA, .iw .nb-slot.slotB { color: var(--matmul); border-color: var(--matmul); }
+  .iw .nb-slot.slotC { color: var(--norm); border-color: var(--norm); }
+  .iw .nb-note { font-size: 11.5px; font-style: italic; color: var(--ink-soft); margin-left: auto; font-family: var(--serif); }
+  .iw .controls { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+  .iw button { font-family: var(--mono); font-size: 12px; color: var(--ink); background: #fff;
+    border: 1px solid var(--hairline); border-radius: 3px; padding: 5px 12px; cursor: pointer; }
+  .iw button:hover { border-color: var(--machine); }
+  .iw button:focus-visible { outline: 2px solid var(--matmul); outline-offset: 1px; }
+  .iw .prog { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin-left: auto; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw" id="iw4">
+  <h3>Block matmul — the same formula, one level up</h3>
+  <p class="sub">Each square is a whole tile (think 128×128 numbers). One step = one block-product: fetch a tile of A and a tile of B, multiply, accumulate into the output patch. A patch needs all 4 of its inner-index terms before it is finished — then it ships to the library and its desk space is reused. The small corner numbers on A and B count how many times each tile has been fetched - watch the reuse story return at block level.</p>
+
+  <div class="matrices">
+    <div class="mat"><div class="mname">A — 4×4 tiles</div><div class="grid" id="gA"></div></div>
+    <div class="opsign">×</div>
+    <div class="mat"><div class="mname">B — 4×4 tiles</div><div class="grid" id="gB"></div></div>
+    <div class="opsign">=</div>
+    <div class="mat"><div class="mname">C — 4×4 patches</div><div class="grid" id="gC"></div></div>
+  </div>
+
+  <div class="formula" id="formula" aria-live="polite"></div>
+
+  <div class="notebook">
+    <div class="nb-title">the notebook — never more than three tiles on the desk</div>
+    <div class="nb-slots">
+      <div class="nb-slot slotA" id="slotA">—</div>
+      <div class="nb-slot slotB" id="slotB">—</div>
+      <div class="nb-slot slotC" id="slotC">—</div>
+      <div class="nb-note" id="nbnote"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="step">step</button>
+    <button id="play">play</button>
+    <button id="reset">reset</button>
+    <select id="speed" aria-label="play speed"><option value="700">slow</option><option value="450" selected>medium</option><option value="220">fast</option></select>
+    <span class="prog" id="prog"></span>
+  </div>
+</figure>
+
+<script>
+(function(){
+  const N = 4; // tiles per side
+  const $ = id => document.getElementById(id);
+  const gA = $('gA'), gB = $('gB'), gC = $('gC');
+
+  // build grids
+  const tiles = { A: [], B: [], C: [] };
+  const fetches = { A: Array(N*N).fill(0), B: Array(N*N).fill(0) };
+  function build(grid, key, sub){
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++){
+      const d = document.createElement('div');
+      d.className = 'tile';
+      d.textContent = sub + '[' + (r+1) + ',' + (c+1) + ']';
+      if (key !== 'C'){
+        const f = document.createElement('span');
+        f.className = 'fetches';
+        d.appendChild(f);
+      }
+      grid.appendChild(d);
+      tiles[key].push(d);
+    }
+  }
+  build(gA, 'A', 'A'); build(gB, 'B', 'B'); build(gC, 'C', 'C');
+
+  // schedule: for each output patch (I,K) in row-major order, inner J = 0..3
+  let step = -1;               // linear step counter, 0 .. N*N*N - 1
+  const TOTAL = N*N*N;
+  const acc = Array.from({length: N*N}, () => 0);
+  let timer = null;
+
+  function idx(r, c){ return r*N + c; }
+
+  function render(){
+    tiles.A.forEach((t,i) => { t.classList.remove('activeA'); t.classList.remove('band'); t.querySelector('.fetches').textContent = fetches.A[i] ? '\u00d7' + fetches.A[i] : ''; });
+    tiles.B.forEach((t,i) => { t.classList.remove('activeB'); t.classList.remove('band'); t.querySelector('.fetches').textContent = fetches.B[i] ? '\u00d7' + fetches.B[i] : ''; });
+    tiles.C.forEach((t, i) => {
+      t.classList.remove('activeC');
+      t.style.background = acc[i] === 0 ? '#fff' : acc[i] < N ? 'rgba(196,85,45,' + (0.10 + acc[i]*0.08) + ')' : '';
+      t.classList.toggle('shipped', acc[i] === N);
+    });
+
+    if (step < 0){
+      $('formula').innerHTML = 'press <b>step</b> — the first block-product awaits';
+      $('slotA').textContent = '—'; $('slotB').textContent = '—'; $('slotC').textContent = '—';
+      ['slotA','slotB','slotC'].forEach(s => $(s).classList.remove('full'));
+      $('nbnote').textContent = '';
+      $('prog').textContent = '0 / ' + TOTAL + ' block-products';
+      return;
+    }
+
+    const patch = Math.floor(step / N);      // which output patch
+    const I = Math.floor(patch / N), K = patch % N;
+    const J = step % N;
+
+    for (let j = 0; j < N; j++){ tiles.A[idx(I, j)].classList.add('band'); tiles.B[idx(j, K)].classList.add('band'); }
+    tiles.A[idx(I, J)].classList.add('activeA');
+    tiles.B[idx(J, K)].classList.add('activeB');
+    tiles.C[idx(I, K)].classList.add('activeC');
+
+    const done = acc[idx(I,K)];
+    $('formula').innerHTML =
+      '<i>C[' + (I+1) + ',' + (K+1) + ']</i> += <b>A[' + (I+1) + ',' + (J+1) + ']</b> · <b>B[' + (J+1) + ',' + (K+1) + ']</b>' +
+      ' &nbsp;&nbsp;(term ' + (J+1) + ' of ' + N + ')';
+
+    $('slotA').textContent = 'A[' + (I+1) + ',' + (J+1) + ']';
+    $('slotB').textContent = 'B[' + (J+1) + ',' + (K+1) + ']';
+    $('slotC').textContent = 'C[' + (I+1) + ',' + (K+1) + ']';
+    ['slotA','slotB','slotC'].forEach(s => $(s).classList.add('full'));
+    $('nbnote').textContent = (done === N)
+      ? 'patch complete → shipped to the library, desk space reused'
+      : 'accumulating — ' + done + ' of ' + N + ' terms in';
+
+    $('prog').textContent = (step + 1) + ' / ' + TOTAL + ' block-products';
+  }
+
+  function doStep(){
+    if (step + 1 >= TOTAL){ stopPlay(); return; }
+    step++;
+    const patch = Math.floor(step / N);
+    const I = Math.floor(patch / N), K = patch % N;
+    const J = step % N;
+    acc[idx(I,K)]++;
+    fetches.A[idx(I,J)]++;
+    fetches.B[idx(J,K)]++;
+    render();
+    if (step + 1 >= TOTAL) stopPlay();
+  }
+  function stopPlay(){
+    if (timer){ clearInterval(timer); timer = null; $('play').textContent = 'play'; }
+  }
+  $('step').addEventListener('click', () => { stopPlay(); doStep(); });
+  $('play').addEventListener('click', () => {
+    if (timer){ stopPlay(); return; }
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    timer = setInterval(doStep, reduced ? 900 : +document.getElementById('speed').value);
+    $('play').textContent = 'pause';
+  });
+  $('reset').addEventListener('click', () => {
+    stopPlay(); step = -1; acc.fill(0); fetches.A.fill(0); fetches.B.fill(0); render();
+  });
+  document.getElementById('speed').addEventListener('change', () => { if (timer){ stopPlay(); document.getElementById('play').click(); } });
+
+  render();
+})();
+</script>
+</body>
+</html>

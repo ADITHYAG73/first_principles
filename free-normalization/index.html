@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Towards Free Normalization, From First Principles</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [
+    {left: '$$', right: '$$', display: true},
+    {left: '$', right: '$', display: false}
+  ]});"></script>
+<style>
+  :root {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --matmul: #2B5BA8; --norm: #C4552D; --hairline: #E4E1DA;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  html { background: #F3F1EC; }
+  body { margin: 0; font-family: var(--serif); color: var(--ink); line-height: 1.62; font-size: 17px; }
+  .sheet { max-width: 760px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--hairline);
+    border-right: 1px solid var(--hairline); padding: 48px 40px 80px; }
+  @media (max-width: 820px) { .sheet { padding: 32px 18px 60px; border: none; } body { font-size: 16px; } }
+  h1 { font-size: 34px; line-height: 1.2; margin: 0 0 4px; letter-spacing: -.01em; }
+  h3.tagline { font-weight: 400; font-style: italic; color: var(--ink-soft); font-size: 17px; margin: 0 0 6px; }
+  .byline { font-size: 13.5px; color: var(--ink-soft); border-bottom: 1px solid var(--hairline);
+    padding-bottom: 18px; margin-bottom: 34px; }
+  h2 { font-size: 24px; margin: 48px 0 12px; letter-spacing: -.005em; }
+  h3 { font-size: 18.5px; margin: 32px 0 8px; }
+  p { margin: 0 0 16px; }
+  hr { border: none; border-top: 1px solid var(--hairline); margin: 40px 0; }
+  a { color: var(--matmul); text-decoration: none; border-bottom: 1px solid rgba(43,91,168,.3); }
+  a:hover { border-bottom-color: var(--matmul); }
+  code { font-family: var(--mono); font-size: .85em; background: #F2F0EA; padding: 1px 5px; border-radius: 3px; }
+  blockquote { margin: 0 0 16px; padding: 8px 18px; border-left: 3px solid var(--hairline); color: var(--ink-soft); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 0 0 16px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 12.5px; font-weight: 500; color: var(--ink-soft); }
+  .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+  details.notebox { border: 1px solid var(--hairline); border-left: 3px solid var(--norm); border-radius: 4px;
+    background: #fff; padding: 10px 16px; margin: 0 0 18px; }
+  details.notebox summary { cursor: pointer; font-size: 13.5px; color: var(--norm); font-style: italic;
+    list-style: none; }
+  details.notebox summary::before { content: '\25B8\00a0'; }
+  details.notebox[open] summary::before { content: '\25BE\00a0'; }
+  details.notebox[open] summary { margin-bottom: 8px; }
+  .widgetwrap { margin: 26px -20px; }
+  @media (max-width: 820px) { .widgetwrap { margin: 22px -8px; } }
+  .widgetwrap iframe { width: 100%; border: none; display: block; }
+</style>
+</head>
+<body>
+<div class="sheet">
+<h1>Towards Free Normalization, From First Principles</h1>
+<h3>A gentle on-ramp to the PyTorch blog, built by counting a 2×2 matrix</h3>
+<hr />
+<h2>1. How this article happened</h2>
+<p>A couple of weeks back I came across this post on Twitter:</p>
+<div style="border:1px solid #E4E1DA; border-radius:8px; padding:14px 18px; margin:0 0 16px; background:#fff;">
+<div style="font-size:13.5px; color:#5A5A63; margin-bottom:6px;"><b style="color:#1A1A1E;">PyTorch</b> @PyTorch · X</div>
+<div style="font-size:15px; line-height:1.5;">Normalization layers often introduce memory-bound bottlenecks in large language models… By overlapping CUDA Core normalization math with Tensor Core execution pipelines, notable speedups can be unlocked… these techniques can hide up to 90% of normalization latency behind GEMM kernels…</div>
+<div style="margin-top:8px; font-size:13px;"><a href="https://x.com/PyTorch/status/2075612393162338595">read the full post →</a></div>
+</div>
+
+<p>And needless to say, I could not decipher head or tail of it. So I did the most obvious thing any average person would be expected to do, especially in this day and age: I asked Claude. The only difference being, Claude (Fable) acted as my tutor and walked me from scratch — first principles all the way to matmuls, the hardware behind them — and together we went on a knowledge hunt where we chased down every number and every claim. Somewhere along the way we swore to build a gentle, on-ramp, introductory blog at high-school mathematics level: a primer you can read <em>before</em> the actual PyTorch blog, with no dilution of the content — only decompression.</p>
+<p>To be precise about what this article is: it is <strong>not</strong> a new invention or a research claim. It is a threadbare, from-first-principles retelling of the original PyTorch work. And we had a lot of fun making it over a couple of weeks.</p>
+<p>Two promises before you begin — they are the whole contract:</p>
+<p><strong>You will work.</strong> At many points you will be asked to compute something before the answer is revealed. That is the deal. What you derive with your own pencil, you keep for life.</p>
+<p><strong>Every number is honest.</strong> Every constant in this article is either cited to a datasheet or derived in front of you, and every formula we derive gets tested against a case small enough to count by hand.</p>
+<p>And one whispered destination, so you know what the climb is for: by the end, you will have derived — starting from counting the multiplications in a 2×2 matrix — why the entire cost of one operation can <em>vanish into the shadow of another</em>, and you will reproduce the headline claims of the PyTorch blog on the back of an envelope.</p>
+<p>Hope you will enjoy.</p>
+<hr />
+<h2>2. Two ledgers</h2>
+<h3>2.1 The arithmetic ledger</h3>
+<p>Imagine you have been tasked with finding the <strong>total arithmetic cost</strong> of a matrix multiplication — for brevity, throughout this article, a <em>matmul</em>. I know you are wondering what "total arithmetic cost" even means. We are building to that. First, a quick refresher.</p>
+<p>As some of you may recall: given two square matrices (equal rows and columns) $A$ and $B$, their product is another square matrix $C$:</p>
+<p>$$C = AB$$</p>
+<p>Matrix multiplication follows a convention: to get one entry of $C$, you multiply the corresponding elements of a <strong>row of $A$</strong> and a <strong>column of $B$</strong>, <em>and then add them up</em>. To make this concrete, take $A$ and $B$ both $2\times 2$, writing $a_{11}$ for the first-row-first-column entry of $A$, and so on:</p>
+<p>$$c_{11} = a_{11}b_{11} + a_{12}b_{21}$$
+$$c_{12} = a_{11}b_{12} + a_{12}b_{22}$$
+$$c_{21} = a_{21}b_{11} + a_{22}b_{21}$$
+$$c_{22} = a_{21}b_{12} + a_{22}b_{22}$$</p>
+<p>The same recipe extends to $3\times 3$, $4\times 4$, or any $n \times n$.</p>
+<p>(One honest note: we will use square matrices throughout, purely to keep one symbol in the formulas. Everything generalizes to rectangular shapes with the same conclusions, and we will flag the one place where shape genuinely matters.)</p>
+<p>First, count the total number of entries in a square matrix of dimension $n$. Trivial, right? It's $n^2$. Easy peasy.</p>
+<p>Now the important part. As promised, the definition: <strong>total arithmetic cost is the total number of operations required to perform a calculation.</strong> For our matmul: how many multiplications and additions did you need to write down the entire result matrix $C$?</p>
+<p>Consider the $2\times 2$ example itself. Before reading on — count it yourself. How many multiplications? How many additions?</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+Each entry needed 2 multiplications and 1 addition. Four entries: **8 multiplications and 4 additions — 12 operations total.**
+
+</details>
+
+<p>Now think about it for a second: for general $n$, what does one entry of $C$ cost?</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+$n$ multiplications and $n-1$ additions per entry.
+
+</details>
+
+<p>And with $n^2$ entries, the total arithmetic cost — call it $W_{\text{matmul}}$ ($W$ for <em>work</em>) — becomes:</p>
+<p>$$W_{\text{matmul}} = \underbrace{n^2 \cdot n}_{\text{multiplications}} + \underbrace{n^2(n-1)}_{\text{additions}} = 2n^3 - n^2 = 2n^2\left(n - \tfrac{1}{2}\right)$$</p>
+<p>That is the first expression of this article — hold onto it. Munch through it, because I am about to throw a final question at you: a typical large language model — the kind of AI system this article is ultimately about — works with vectors of dimension as large as $n = 4096$. At that scale, how do the two terms compare?</p>
+<p>At $n = 4096$, the term you are keeping is $2n^3 \approx 137$ <strong>billion</strong>, while the one you are dropping is $n^2 \approx 17$ <strong>million</strong> — a rounding error on a rounding error. Since $n \ggg \tfrac{1}{2}$, we may treat $n - \tfrac{1}{2}$ as just $n$:</p>
+<p>$$W_{\text{matmul}} \approx 2n^3$$</p>
+<p>Remember this result. It is one of the landmark results in the scope of this article.</p>
+<p>Fun part — the anchor: plug $n = 2$ into the <em>exact</em> expression: $2(8) - 4 = 12$. Now count your handwork from earlier: 8 multiplications + 4 additions = 12. Formula and fingers agree. Keep this habit — every formula we derive will be tested against a case small enough to count by hand. (A rule of thumb we will honor throughout: <strong>anchors use exact formulas at small $n$; approximations earn their keep at large $n$.</strong>)</p>
+<h3>2.2 The movement ledger</h3>
+<p>In the previous part we looked at the arithmetic ledger. Now, the <strong>movement ledger</strong> — and there is a second cost that pure mathematics politely ignores: <em>the numbers have to come from somewhere</em>.</p>
+<p>Back to the $2\times 2$ matmul. Suppose I ask: how many times must each entry of $A$ and $B$ be <strong>moved</strong>? Imagine the entries live in a <strong>library</strong>, and you do your arithmetic in a <strong>notebook</strong> — you can only compute on numbers currently written in your notebook, and every fetch from the library is a trip with a cost.</p>
+<p>Take a moment. Think it through.</p>
+<p>Some of you may think: hang on, $a_{11}$ is used in computing both $c_{11}$ and $c_{12}$, so it must be moved 2 times. It is okay if you think that way the first time — many of us trip here, and that included me when I first saw this problem. But here is the thing:</p>
+<p><strong>A number may be <em>used</em> many times in different calculations, but that does not mean you must go to the library and fetch it every time.</strong> Fetch it once, and reuse it as many times as you wish. No tax.</p>
+<p>So the clean strategy: walk to the library once, copy all of $A$ and all of $B$ into your notebook, do the entire calculation there, and carry the finished $C$ back. (For now, assume the notebook is big enough to hold everything. Hold that thought.)</p>
+<p>With this in mind, the count: inputs are $n^2 + n^2 = 2n^2$ numbers fetched, and the output $C$ is $n^2$ numbers carried back. The total movement cost:</p>
+<p>$$M_{\text{matmul}} = \underbrace{2n^2}_{A \text{ and } B \text{ in}} + \underbrace{n^2}_{C \text{ out}} = 3n^2$$</p>
+<p>Anchor it: at $n = 2$, physically picture the desk — 4 numbers of $A$ in, 4 of $B$ in, 4 of $C$ out. <strong>Twelve numbers crossing the library desk.</strong> And $3n^2$ at $n=2$ gives $12$. ✓</p>
+<p>So for a matmul, you now own both ledgers:</p>
+<p>$$W_{\text{matmul}} \approx 2n^3 \qquad\qquad M_{\text{matmul}} = 3n^2$$</p>
+<p>Two expressions in the ledger now — $W$ and $M$ — and everything ahead is built from them. In the next section: the all-important ratio between them.</p>
+<hr />
+<h2>3. The ratio</h2>
+<p>So far we have the total arithmetic count and the total movement count for a matmul. In this section we go after the concept of <strong>arithmetic intensity</strong> — in simple language, the <em>work-per-trip</em> ratio.</p>
+<p>Recall:</p>
+<p>$$W_{\text{matmul}} \approx 2n^3 \qquad M_{\text{matmul}} = 3n^2$$</p>
+<p>Now ask yourself: <strong>for every number you bothered to fetch from the library, how much work were you able to squeeze out of it?</strong> Define:</p>
+<p>$$I = \frac{W}{M}$$</p>
+<p>Back to the $2\times 2$ entries for the intuition: you fetched $a_{11}$ once, and it helped with both $c_{11}$ and $c_{12}$. The same applies to every input entry — at $n=2$, each is used exactly twice. And as the matrix dimension grows, the reuse only grows with it: in an $n \times n$ matmul, $a_{11}$ appears in $n$ different entries of $C$ (the whole first row). <strong>The reuse count is $n$.</strong></p>
+<p>Let's build the intuition slowly, from the smallest cases upward.</p>
+<p><strong>$n = 1$:</strong> a single-element matrix. One multiplication; three numbers moved (one in from each input, one out). $W = 1$, $M = 3$:</p>
+<p>$$I_{\text{matmul}} = \tfrac{1}{3}$$</p>
+<p>Stick with this number — within the matmul family, it is the only sub-1 value you will ever see.</p>
+<p><strong>$n = 2$:</strong> 8 muls + 4 adds = 12 ops; 12 numbers moved.</p>
+<p>$$I_{\text{matmul}} = \tfrac{12}{12} = 1$$</p>
+<p>An uninteresting number — barely any reuse yet; each input used just twice. Within the matmul family, this is the only $n$ where $I$ equals exactly 1.</p>
+<p><strong>$n = 3$:</strong> $W = 2n^3 - n^2 = 45$, $M = 3n^2 = 27$:</p>
+<p>$$I_{\text{matmul}} = \tfrac{45}{27} = \tfrac{5}{3} > 1$$</p>
+<p>The first sign of reuse paying off. In fact, from the exact formulas:</p>
+<p>$$I_{\text{matmul}}^{\text{exact}} = \frac{2n^3 - n^2}{3n^2} = \frac{2n-1}{3} \qquad\qquad I_{\text{matmul}} \approx \frac{2n}{3}$$</p>
+<p>Check: $\tfrac{2n-1}{3}$ gives $\tfrac{1}{3}, 1, \tfrac{5}{3}$ at $n = 1, 2, 3$ — the exact sequence you just computed, from one formula.</p>
+<div class="widgetwrap"><iframe src="widgets/widget1-intensity-plot.html" title="Interactive plot: arithmetic intensity of matmul and norm versus n" style="height:640px" loading="lazy"></iframe></div>
+
+<p>In a typical large language model, every token is represented internally as a vector of numbers, and the length of that vector — the model's <em>hidden size</em> — reaches $n = 4096$ in well-known models (and larger models go wider still). The matrices the model multiplies are sized to match that vector, so $n = 4096$ is the honest scale for our formulas. Plug it in:</p>
+<p>$$I_{\text{matmul}} \approx \frac{2 \times 4096}{3} \approx 2731$$</p>
+<p>Every single number carried from the library repays you with roughly 2,731 operations. <strong>The bigger the matrix, the more valuable every library trip becomes</strong> — because scale manufactures reuse.</p>
+<p>(The flagged caveat about shape: this growth needs <em>all</em> dimensions to grow. A matrix times a single <em>vector</em> is stuck near $I \approx 2$ no matter how huge the matrix — which is why LLM text generation is memory-hungry even though training is compute-hungry. One asterisk; back to squares.)</p>
+<p>Think about it for a second. Let it sink in. Because now I will introduce you to a new operation: <strong>RMSNorm</strong>.</p>
+<p>RMSNorm of a vector $x$ of dimension $n$ is defined per element as:</p>
+<p>$$y_i = \frac{x_i}{\sqrt{\dfrac{1}{n}\displaystyle\sum_{j=1}^{n} x_j^2}}$$</p>
+<p>In words: measure the typical size of the row's numbers (the root-mean-square), and divide everyone by it. Why do LLMs do this at all? It keeps the numbers flowing between layers in a healthy, standard range. That one sentence is all we need; what we care about is what it <em>costs</em>.</p>
+<p>Take a moment and digest the equation. Then repeat the exercise we did for matmul: calculate $W$ and $M$ for this operation. Hint: read the expression from the bottom up — first the denominator (what operations does it need?), then the final division applied to every element. $M$ should be rather trivial.</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+Denominator: $n$ squarings, $n-1$ additions, one divide-by-$n$, one square root. Then $n$ final divisions.
+
+$$W_{\text{rmsnorm}} = n + (n-1) + 1 + 1 + n = 3n + 1 \qquad\qquad M_{\text{rmsnorm}} = 2n$$
+
+(vector in, vector out — that's the $2n$.)
+
+</details>
+
+<p>Now compare the intensities of the two operations:</p>
+<p>$$I_{\text{matmul}} \approx \frac{2n}{3} \qquad\qquad I_{\text{rmsnorm}} = \frac{3n+1}{2n} \;\longrightarrow\; \frac{3}{2}$$</p>
+<p>Let that sink in. At $n = 4096$: $I_{\text{matmul}} \approx 2731$, whereas $I_{\text{rmsnorm}} \approx \tfrac{3}{2}$ — <strong>forever, no matter what $n$ is.</strong></p>
+<p>Why is one stuck? Reuse. In a matmul, $a_{11}$ participates in $n$ different entries — fetch once, use thousands of times. In the norm, each $x_i$ is touched exactly <strong>twice</strong> — once in the sum, once in its own division — and then it dies. The work-per-trip ratio can never exceed the reuse count. The norm is not slow by sloppy bookkeeping; it is slow <strong>by its very structure</strong>, and no cleverness can change that.</p>
+<p>(A quiet echo worth noticing: a $2\times 2$ matmul and the norm have essentially the same intensity — both have reuse 2. Matmul isn't <em>intrinsically</em> trip-efficient; it <em>becomes</em> efficient at scale, because scale manufactures reuse. The norm never receives that gift.)</p>
+<p>So far these are just ratios. To turn them into a verdict, we need one fact about the machine itself.</p>
+<hr />
+<h2>4. The machine's ratio</h2>
+<p>Modern processors are masters of matmuls — in hardware-speak, <strong>GEMMs</strong> (General Matrix Multiplies; the industry's name for exactly the operation you have been counting). Here are the two rates that characterize a machine, using NVIDIA's B200 GPU — the hardware in the PyTorch blog — with figures from its datasheet (<a href="https://www.primeline-solutions.com/media/categories/server/nach-gpu/nvidia-hgx-h200/nvidia-blackwell-b200-datasheet.pdf">NVIDIA Blackwell B200 datasheet</a>; note the B200 ships in two configurations — 192 GB at 8.0 TB/s and 180 GB at 7.7 TB/s — we use the 8.0 TB/s figure throughout):</p>
+<ul>
+<li><strong>Arithmetic rate</strong> $R_a$: how many operations per second it can perform. B200, dense BF16: $R_a = 2.25 \times 10^{15}$ ops/second. (Careful with datasheets: they love to quote a doubled "sparsity" figure; the honest number for our purposes is the <em>dense</em> one. And even this is a peak — real kernels achieve some fraction of it. It is the idealized ceiling that makes the argument.)</li>
+<li><strong>Movement rate</strong> $R_m$: how many numbers per second it can move. The datasheet says 8 TB/s of memory bandwidth; each of our numbers occupies 2 bytes (the bfloat16 format), so: $R_m = 8 \times 10^{12} \div 2 = 4 \times 10^{12}$ numbers/second. (Note the ÷2 bridge — bandwidth is quoted in <em>bytes</em>, our ledger counts <em>numbers</em>.)</li>
+</ul>
+<p>Now do one thing. Define the <strong>machine's own ratio</strong>:</p>
+<p>$$I^* = \frac{R_a}{R_m} = \frac{2.25 \times 10^{15}}{4 \times 10^{12}} \approx 562$$</p>
+<p>Hold on to this number.</p>
+<p>Crucially, the arithmetic units and the memory system are two <em>independent</em> workers — an <strong>engine</strong> that computes and a <strong>courier</strong> that runs the library trips — and they can work <em>simultaneously</em>. So consider the time each needs:</p>
+<p>$$t_a = \frac{W}{R_a} \qquad t_m = \frac{M}{R_m} \qquad\Longrightarrow\qquad \frac{t_a}{t_m} = \frac{W}{M}\cdot\frac{R_m}{R_a} = \frac{I}{I^*}$$</p>
+<p>Stare at that last expression for as long as you like, and the obvious will stare back, loud and clear. The entire verdict compresses to comparing <strong>your algorithm's ratio against the machine's ratio</strong>:</p>
+<ul>
+<li>If $I > I^*$: arithmetic dominates — the operation is <strong>compute-bound</strong> (the engine is the bottleneck; the courier idles). Matmul at $n = 4096$: $\tfrac{2731}{562} \approx 4.9$. ✓</li>
+<li>If $I < I^*$: movement dominates — the operation is <strong>memory-bound</strong> (the courier is the bottleneck; the engine idles). RMSNorm: $\tfrac{1.5}{562} \approx 0.0027$ — during a norm, that magnificent $2.25$-quadrillion-ops-per-second engine is actually working <strong>0.27% of the time</strong>. It stands idle, waiting for the courier.</li>
+</ul>
+<p>This one-comparison rule has a name in the field: the <strong>roofline model</strong>. Nothing about it required a textbook — it fell out of two ledgers and one division, which is the point: the famous result is downstream of the counting, not the other way around. A different GPU has a different $I^*$ (any datasheet's FLOPS and bandwidth give you that machine's balance point in one division); the rule itself doesn't change.</p>
+<hr />
+<h2>5. Sum vs max</h2>
+<p>In modern LLMs, two operations typically alternate: matmul, then RMSNorm, then matmul... The matmul's output is an $n \times n$ matrix, and the norm applies to <strong>every single row</strong> of it — that's $n$ norms of length $n$. Scale the norm's ledgers by $n$ rows:</p>
+<p>$$W_{\text{norm}} = 3n^2 \qquad M_{\text{norm}} = 2n^2$$</p>
+<p>Nothing changes about the ratio — still $\tfrac{3}{2}$, constant.</p>
+<p>Now here is the thing: the norm can only work when it <em>has</em> the matmul's output. A sequential workload. In that case:</p>
+<p>$$t_{\text{total}} = t_{\text{mm}} + t_{\text{norm}}$$</p>
+<p>Hold on to this expression, because we are going to flip the entire narrative — not by a magic trick, but by deeply probing the mechanics of both operations.</p>
+<p>First, the times, with the machine numbers from §4 (one subtlety first: <em>within</em> a single operation, the engine and courier already overlap, so an operation's time is $\max(t_a, t_m)$ — whichever worker finishes last — not their sum):</p>
+<p><strong>Matmul at $n = 4096$:</strong> $W = 2n^3 \approx 1.37 \times 10^{11}$, so $t_a \approx 6.1 \times 10^{-5}$ s. $M = 3n^2 \approx 5.0 \times 10^7$, so $t_m \approx 1.3 \times 10^{-5}$ s. Compute-bound, as promised:</p>
+<p>$$t_{\text{mm}} = \max(t_a, t_m) \approx 6.1 \times 10^{-5} \text{ s}$$</p>
+<p><strong>The full-matrix norm:</strong> $W = 3n^2$ gives a laughable $t_a \approx 2 \times 10^{-8}$ s; $M = 2n^2 \approx 3.4 \times 10^7$ gives $t_m \approx 8.4 \times 10^{-6}$ s. Memory-bound, as promised:</p>
+<p>$$t_{\text{norm}} \approx 8.4 \times 10^{-6} \text{ s}$$</p>
+<div class="widgetwrap"><iframe src="widgets/widget2-covenant-calculator.html" title="Calculator: recompute the article’s numbers for any machine" style="height:760px" loading="lazy"></iframe></div>
+
+<p>Sequential total: $t_{\text{total}} \approx 6.95 \times 10^{-5}$ s, of which the norm is about <strong>12%</strong> — twelve percent of the layer's wall-clock time spent on an operation whose arithmetic is trivial. (Real attention blocks carry several norms plus residual additions with the same disease — that is how the PyTorch blog's "roughly 10% of a typical LLM, 20% of their recommendation model" figures arise — see <a href="https://pytorch.org/blog/towards-free-normalization-fusing-normalization-into-gemm-and-attention-kernels/">the original post</a>.)</p>
+<p>Now ask yourself the flipping question: <strong>during the compute-bound matmul, what is the courier doing?</strong> His actual carrying takes $1.3 \times 10^{-5}$ s of a $6.1 \times 10^{-5}$ s job — he is idle roughly <strong>79%</strong> of the matmul. And the norm's entire workload is $8.4 \times 10^{-6}$ s of pure courier work. Does it fit in the courier's idle time?</p>
+<p>Resoundingly yes — it fits about <strong>six times over</strong>.</p>
+<div class="widgetwrap"><iframe src="widgets/widget3-timeline-toggle.html" title="Timeline: sequential versus overlapped schedules" style="height:480px" loading="lazy"></iframe></div>
+
+<p>So let the courier do the norm's carrying <em>while</em> the engine grinds the matmul. Two independent workers, simultaneous — and the total reshapes itself:</p>
+<p>$$t_{\text{total}} = \max(t_{\text{mm}},\, t_{\text{norm}}) \approx t_{\text{mm}}$$</p>
+<p>Not a sum anymore. The norm's cost doesn't shrink — <strong>it vanishes into the max</strong>, swallowed whole by the matmul's shadow. That is what the PyTorch blog means by hiding "as much as 90% of a normalization kernel's latency" — in practice the overlap is never perfect, so they hide ~90% rather than 100% (<a href="https://pytorch.org/blog/towards-free-normalization-fusing-normalization-into-gemm-and-attention-kernels/">source</a>).</p>
+<p>But one impending question remains, and on it depends the entire scheme: for the norm to happen, it needs the rows of the resultant matrix. So — does the courier carry them? <strong>Will they even have existed yet</strong> for the overlap to take effect?</p>
+<p>We answer that in the next part.</p>
+<hr />
+<h2>6. Tiles</h2>
+<p>You remember, at the start of this article, I told you: fetch all the numbers from the library, and assume your notebook holds everything. Well — it was a lie, and I am going to unravel the lie I told you all along. Sorry, my beloved readers.</p>
+<p>Your so-called on-chip notebook typically holds about <strong>228 KB</strong>. At 2 bytes per number, that is $228{,}000 / 2 = 114{,}000$ numbers of capacity. Now compare that with one $4096 \times 4096$ matrix: about <strong>16.8 million numbers</strong>. The notebook holds under 1% of <em>one</em> matrix — and a matmul needs three (two inputs and the growing output). Peanuts.</p>
+<p>I know. I can feel your disappointment. All is not lost — trust me.</p>
+<p>Matrices of such scale are multiplied in production by what is called <strong>block matmul</strong>. And it is not a new algorithm at all — it is the same formula, one level up. Partition each matrix into small square blocks, and the product formula works with <em>blocks as the entries</em>:</p>
+<p>$$C_{IK} = \sum_{J} A_{IJ}\, B_{JK}$$</p>
+<p>— formally identical to $c_{ik} = \sum_j a_{ij} b_{jk}$, with little matrices in place of numbers. Each such block is called a <strong>tile</strong> (and the act of carving, <strong>tiling</strong>). The machine's rhythm: fetch a block of $A$ and a block of $B$ into the notebook, multiply, accumulate into the corresponding block of $C$, repeat over the inner index $J$ — everything fits.</p>
+<p>One worry to retire immediately: the output blocks do not overlap. They tile $C$ edge to edge, like graph paper — each entry of $C$ belongs to exactly one patch, so nothing is double-counted.</p>
+<div class="widgetwrap"><iframe src="widgets/widget4-block-matmul-stepper.html" title="Stepper: block matmul, one block-product at a time" style="height:620px" loading="lazy"></iframe></div>
+
+<p>So the memory problem is solved. But did we run into another problem? You bet we did. Don't worry — we are in this together, and I promised I won't let you down.</p>
+<p>Note that $C$'s entries now arrive <strong>in patches</strong> — say $128 \times 128$ — scattered across the matrix in whatever order the machine schedules them. Now recall your norm operation. What does the denominator look like?</p>
+<p>You guessed it: the norm needs <strong>all entries of a row of $C$</strong> — all 4096 — before it can divide even one of them. If a freshly finished patch holds only 128 entries of any given row, what can it even do? Should it wait until all 4096 arrive? But waiting is exactly the sequential schedule you just killed in the last section!</p>
+<p>This mismatch — the norm needs whole rows, the machine produces patches — is what the PyTorch blog calls the <strong>tiling difference</strong>, their stated key blocker. So ask yourself this question:</p>
+<p>The denominator of RMSNorm is just the square root of the average of squares over the row. But do you truly need all 4096 numbers <em>in one place</em> — or would the <strong>sums of 128-sized chunks</strong> be enough for you?</p>
+<p>Think about it. The next section is the answer.</p>
+<hr />
+<h2>7. The rescue</h2>
+<h3>7.1 A sum in chunks</h3>
+<p>Can addition be done in chunks? Seemingly simple question, right? And the answer is yes — our friend, the law of associativity, says hi and smiles at us from the corner. Adding 4096 numbers in one go, or as 32 subtotals of 128 each and then adding the subtotals, gives the same answer. Grouping changes nothing.</p>
+<p>Think about what a patch is: each $128 \times 128$ patch contributes 128 entries to each of <strong>128 different rows</strong> — it is a delivery touching 128 rows at once, not a parcel for one row. A full row's 4096 entries are spread across $4096/128 = 32$ patches strung out horizontally; the whole matrix is a $32 \times 32$ grid of patches.</p>
+<p>So a running-total scheme is begging to be built. But before building it, one question must be settled, and it is worth stumbling on deliberately — I did: <strong>who owns the counter?</strong> The patches are the things arriving; it is tempting to hand each patch a counter of its own. Pause and test that idea against what a patch <em>is</em> before reading on.</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+It cannot work — a patch touches 128 *different* rows, and each of those rows has entries scattered across 31 *other* patches. A patch is a visitor, not an owner. **The counter belongs to the row.**
+
+</details>
+
+<p>So: every row of $C$ gets its own little running-total box — 4096 boxes in all, one per row, all starting at zero. The box for row 7 has one job for its whole life: accumulate the sum of squares of row 7's entries, as they come into existence.</p>
+<p>Patches are <em>events</em>, not owners. When a patch lands, think of it as a delivery concerning 128 rows at once. The bookkeeping for that one delivery: for each of the 128 rows it touches, square that row's 128 fresh entries, add them up — one number — and <em>deposit</em> it into that row's box. One patch, 128 deposits, into 128 different boxes.</p>
+<p>Now follow a single box through its life. Its row's 4096 entries are spread across 32 patches, so the box fills over <strong>32 deposits</strong> — 128 terms at a time, arriving in whatever scattered order the machine pleases. The order doesn't matter; that is associativity's whole gift. And when the 32nd deposit lands, one finishing move — divide by $n$, take the square root — and that row's denominator exists.</p>
+<div class="widgetwrap"><iframe src="widgets/widget5-patch-arrival.html" title="Animation: patches arriving, counters filling, the division waiting" style="height:700px" loading="lazy"></iframe></div>
+
+<p>The <strong>reduction</strong> half of the norm — the whole denominator — now rides along during the matmul, patch by patch, in the engine's shadow. No waiting.</p>
+<h3>7.2 The half still in prison</h3>
+<p>But that is only the reduction. The norm was always two jobs: (a) the <strong>reduction</strong> — the denominator; and (b) the <strong>division</strong> — dividing each entry of the result matrix $C$ by its row's denominator. And the division is stuck in a queue: it needs the denominator, and the denominator needs the row's 32nd patch. (Why 32? It's not some magic number — $C$ arrives in $128\times128$ patches, meaning 128 entries for 128 different rows, and a row is complete only after being touched by $4096/128 = 32$ patches.)</p>
+<p>Could we simply <em>hold</em> the arrived patches in the notebook until their rows settle? Run the warden's tally. Take rows 1–128. When are they eligible for division? Only when all 4096 of their columns exist — picture the patches sweeping left to right: columns 1–128, then 129–256, then 257–384, and so on. <strong>Thirty-two passes.</strong> So under a hold-until-divisible policy, the desk must swell to</p>
+<p>$$32 \times 128 \times 128 = 524{,}288 \text{ numbers}$$</p>
+<p>against a notebook of 114,000 — about <strong>4.6 notebooks</strong>. In fact the desk overflows at around the 7th patch, less than a quarter of the way there. And note the fine print: this assumed the <em>best case</em> — a gentle machine that agrees by contract to finish rows 1–128 before touching anything else. We assumed the friendliest schedule not because it is true, but because <strong>if the plan dies even there, it dies everywhere.</strong> Reality — patches scattered across many bands at once — is only worse. Physically impossible.</p>
+<p>(Seen from above, that pile of 32 patches is just a strip 128 rows tall and 4096 wide — $128 \times 4096$, same count, different viewpoint.)</p>
+<p>So the machine's only rhythm is: the notebook is a workbench, not a warehouse — compute a patch, <strong>ship it out to the library un-divided</strong>, reuse the space. And when a row's counter finally hits 32/32, its numbers are all in the library... so the courier must haul them <em>back</em> for their division, and ship them out <em>again</em>. A full extra round trip over essentially the whole matrix: the norm's entire movement bill, re-purchased. For the reduction we performed chunked addition, and during the division we seem to have lost everything. Feels like square one — actually worse.</p>
+<p>But hang on. We cannot accept defeat so meekly — because MATHEMATICS is always a man's friend, and one of the most elegant facts in linear algebra — the kind Prof. Gilbert Strang's lectures make you fall in love with — is waiting to meet us at the doorway.</p>
+<h3>7.3 The escape</h3>
+<p>I want to start with a rather unassuming but sweeping statement, because a good friend of mine named Fabeloppolous once told me: <strong>"Every matrix $C$ that is the result of one matmul is the $A$ of the next one."</strong> You will understand the magnitude of this as we drive deeper into the woods.</p>
+<p>Think about it. We define $C = AB$, and we are busy, stuck, computing the norm of $C$. Take a step back. Focus on the <em>inputs</em> rather than the outputs — especially matrix $A$.</p>
+<p>Consider a simple $2\times 2$ case:</p>
+<p>$$A = \begin{pmatrix} 3 & 4 \\ 6 & 8 \end{pmatrix}$$</p>
+<p>If I ask you to normalize $A$, what will you do? Row 1 has root-sum-square $\sqrt{3^2 + 4^2} = 5$; row 2, $\sqrt{6^2+8^2} = 10$. (Pythagorean triplets certainly help, don't they... 😄.)</p>
+<p>$$A_{\text{norm}} = \begin{pmatrix} 3/5 & 4/5 \\ 6/10 & 8/10 \end{pmatrix}$$</p>
+<p>Now, the linear algebra enthusiasts among you would be screaming to write $A_{\text{norm}}$ <em>in terms of</em> $A$ — and I hear you completely, I swear:</p>
+<p>$$A_{\text{norm}} = \begin{pmatrix} 1/5 & 0 \\ 0 & 1/10 \end{pmatrix}\begin{pmatrix} 3 & 4 \\ 6 & 8 \end{pmatrix} = DA$$</p>
+<p>Left-multiplying $A$ by a diagonal matrix carrying $A$'s row-wise scalers gives $A_{\text{norm}}$ — work out the product and watch the zeros kill every cross-term; what survives is exactly row-scaling. In general, $D = \mathrm{diag}(1/s_1, \ldots, 1/s_n)$. Hang on to this; something more elegant is coming your way.</p>
+<p>So I am going to make a bold claim here — our friend the law of associativity promised to help us with a groundbreaking theorem, and she kept her promise. I lay it bare in front of you:</p>
+<p>$$(DA)B = D(AB)$$</p>
+<p>Parenthesis shifting subtly — but its impact feels of the order of tectonic movement. Why is it even true? Try to prove it before reading on.</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+One word: **associativity**. Both sides are just two parenthesizations of the triple product $DAB$. That's the entire proof.
+
+</details>
+
+<p>Never trust an identity you haven't tested. The workbench: take $B = \begin{pmatrix} 1 & 2 \\ 1 & 0 \end{pmatrix}$ and run both paths. Path 1: normalize $A$ first, then multiply by $B$. Path 2: compute raw $AB$ first, then divide each of its rows by <strong>$A$'s row scalers</strong> — the same $s_1 = 5$ and $s_2 = 10$ you computed from $A$ a moment ago. Compute every entry.</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+Both paths land on the same matrix. The identity survives its test.
+
+</details>
+
+<p>Stare at that theorem for as long as you like, as it screams the single most important takeaway.......... (letting the curiosity widen for those who haven't spotted it yet)</p>
+<p><strong>The division is a lazy job — and its ingredients are already sitting there, ready, by the time $C$ lands.</strong></p>
+<p>Sounded heavy? Look at the theorem again. Taking the norm of $A$ and then multiplying by $B$ — the thing the network actually needs — is <em>the same</em> as multiplying the two matrices first and applying $A$'s scaling at the very end. Note carefully: <strong>the norm of $A$, not of $AB$.</strong> $D$ corresponds to the scalers of matrix $A$, and always will, no matter what. We are computing $\text{norm}(A)\cdot B$ by a back road — never normalizing $AB$ by its own row-norms, which would be a different function and a wrong answer.</p>
+<p>And now the schedule reads itself: compute the raw product $AB$ at full engine speed — patches shipping out the moment they're done, nothing held, nothing waiting — then apply $D$ at the very end, a cheap one-multiply touch-up on each finished patch. Are the scalers ready in time? By construction: $A$ exists in full <em>before</em> the multiply begins — its blocks pass through the notebook anyway, as ingredients — so its row-counters fill at leisure during the matmul's early passes. No race, no luck.</p>
+<p>And what about $C$'s own counters, the ones from §7.1, dutifully filling as the patches land? Some of you might ask: $C$'s entries only just came into existence — whose scalers are <em>those</em> for? But hey — every $C$ is the $A$ of the next matmul, isn't it? Today's output-counters are tomorrow's ready-made scalers. Cheeky, right? I know. But it's fun sometimes, don't you think?</p>
+<p>This — accumulate the reduction alongside the matmul, postpone the scaling until after it — is what PyTorch calls <strong>Lazy Pre-Norm</strong>. The laziness is literal: put off the work until the moment it costs nothing.</p>
+<div class="widgetwrap"><iframe src="widgets/widget6-workbench.html" title="The interactive workbench: test every identity with your own matrices" style="height:640px" loading="lazy"></iframe></div>
+<p>The whole trick hinged on $D$ sliding through $B$ untouched. A mathematician's next question is always: <em>when does that fail?</em></p>
+<hr />
+<h2>8. Where it breaks</h2>
+<p>In the last section, Lazy Pre-Norm acted as a lifesaver thanks to one powerful theorem: $(DA)B = D(AB)$. In this section we apply the same law of associativity — and watch it <em>fail to rescue</em> two other operations. Because a theorem you can't break is a theorem you don't yet own.</p>
+<p>Here is the full <strong>LayerNorm</strong> — the operation most transformers actually ship — per element, with its three pieces labeled:</p>
+<p>$$y_j = \underbrace{g_j}_{\text{the affine}} \cdot \frac{\overbrace{x_j - \bar{x}}^{\text{the centering}}}{\underbrace{\sigma}_{\text{the scaling}}} + b_j$$</p>
+<p>The scaling — dividing the row by a single per-row number — is pure row-scaling: our friend $D$, and we already know the lazy trick handles it. But note carefully <em>which</em> number the row is divided by, because it is not the same as RMSNorm's:</p>
+<p>$$\text{RMSNorm divides by:}\quad \mathrm{rms}(x) = \sqrt{\tfrac{1}{n}\textstyle\sum_j x_j^2} \qquad\qquad \text{LayerNorm divides by:}\quad \sigma = \sqrt{\tfrac{1}{n}\textstyle\sum_j (x_j - \bar{x})^2}$$</p>
+<p>Same shape of formula — but $\sigma$ (the standard deviation) is computed on the row <em>after</em> the mean has been removed. The subtraction lives inside the divisor too, not just in the numerator. (Nice special case to feel it: if a row's mean happens to be zero, $\sigma = \mathrm{rms}$ exactly — and indeed RMSNorm was born by asking whether the centering was earning its keep, and deleting it everywhere.) Keep this in your pocket; it returns with interest shortly.</p>
+<p>The two remaining pieces are where the lazy trick breaks, and we take them <em>separately</em>, because each breaks it for its own distinct reason. And lest you think the affine $g_j$ is optional trim: the RMSNorm inside nearly every modern LLM ships with it switched on — the official Llama implementation carries a learnable per-column weight, and PyTorch's own <code>nn.RMSNorm</code> defaults to <code>elementwise_affine=True</code> (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py">Llama RMSNorm</a>, <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.RMSNorm.html">PyTorch docs</a>).</p>
+<p>(Two classifiers, never to be confused: <em>what</em> a norm does — RMSNorm scales only; LayerNorm centers, then scales — versus <em>where</em> it sits relative to the matmul — <strong>pre-norm</strong>, $\text{norm}(A)\cdot B$, or <strong>post-norm</strong>, $\text{norm}(AB)$. Our theorem serves only pre-norm — the scaling must sit on the <em>input</em>, the matrix that already exists; there is nothing for associativity to grip in $\text{norm}(AB)$. The trick's own name confesses it: Lazy <em>Pre</em>-Norm. Fortunately, pre-norm is what modern LLMs overwhelmingly use.)</p>
+<h3>8.1 The affine</h3>
+<p>If you recall, left multiplication by a diagonal scales the <strong>rows</strong> of $A$. Ask yourself: what does <em>right</em> multiplication do? Don't take my word for it — the workbench:</p>
+<p>$$AG = \begin{pmatrix} 3 & 4 \\ 6 & 8 \end{pmatrix}\begin{pmatrix} 10 & 0 \\ 0 & 100 \end{pmatrix} = \begin{pmatrix} 30 & 400 \\ 60 & 800 \end{pmatrix}$$</p>
+<p>Look how the <em>column</em> entries share a scaler, unlike row scaling. The rule completes itself, symmetric and clean:</p>
+<p>$$DA = \text{scale rows} \qquad\qquad AD = \text{scale columns}$$</p>
+<p>The side decides the geometry. And the affine's $g_j$ is per-column by definition (each column is one <em>feature</em>, and the knobs belong to features), so applying it means right-multiplying: the spec is $(AG)B$.</p>
+<p>Associativity still holds, of course:</p>
+<p>$$(AG)B = A(GB)$$</p>
+<p>Notice the difference?? Both sides are perfectly equal — nothing here is arithmetically wrong. But look where $G$ landed: pushed <strong>inward, onto $B$</strong> — the right-hand side says "scale $B$'s rows, then multiply by $A$." (Check the consistency yourself: $G$'s entries live on the <em>inner</em> index — $A$'s columns pair with $B$'s rows — so of course the diagonal can lean either way across it.)</p>
+<p>Compare the two outcomes:</p>
+<p>$$D\underbrace{(AB)}_{\text{raw product first, scaling after}} \qquad\text{vs}\qquad A\underbrace{(GB)}_{\text{scaling first, then the matmul}}$$</p>
+<p>And here is the decisive point: <strong>in $A(GB)$, the raw product $AB$ appears nowhere.</strong> There is no reading of it in which you compute plain $AB$ at full speed and touch it up later. Column scaling never lets the pure product materialize. The lazy schedule isn't wrong — it is <em>unavailable</em>.</p>
+<p>(Fine print: $G$ is learned — its values are known before anything runs — so a workaround exists: pre-fold $G$ into $B$. This is a real, published technique — see <a href="https://arxiv.org/abs/2407.09577">FlashNorm</a>, which merges the normalization weights into the next linear layer's weights. Feasible, but it entangles the norm with the weights and abandons the clean "raw matmul + cheap epilogue" shape. Hence the PyTorch blog's careful phrasing: "cannot <em>easily</em> support.")</p>
+<h3>8.2 The centering</h3>
+<p>Now the other piece — LayerNorm's signature move. Consider $A_c$, the <em>centered</em> version of $A$: subtract the mean of each row from that row's entries. Row means of our workbench $A$: $\bar{a}_1 = 3.5$, $\bar{a}_2 = 7$.</p>
+<p>We have played this game once before — an informal row-wise act, dressed as a matrix so the laws can touch it. Let's dress the subtraction. Three steps.</p>
+<p><strong>Step 1 — write the wish.</strong> What do we want to subtract? A matrix with 3.5 spread across row 1 and 7 across row 2:</p>
+<p>$$M = \begin{pmatrix} 3.5 & 3.5 \\ 7 & 7 \end{pmatrix} \qquad \text{so that} \qquad A_c = A - M$$</p>
+<p><strong>Step 2 — does our algebra manufacture $M$?</strong> A matrix whose every row is a constant... Take the column of means and a row of ones, and multiply:</p>
+<p>$$\bar{a}\,\mathbb{1}^{\top} = \begin{pmatrix} 3.5 \\ 7 \end{pmatrix}\begin{pmatrix} 1 & 1 \end{pmatrix} = \begin{pmatrix} 3.5 & 3.5 \\ 7 & 7 \end{pmatrix} = M \;\checkmark$$</p>
+<p>Compute it yourself — a $(2\times1)(1\times2)$ product, four little multiplications. The row of ones is a <em>spreader</em>: it copies each mean across its row. (This shape — column times row — is called an <strong>outer product</strong>, and spreading per-row constants is its day job. And $\mathbb{1}^{\top}$ is nothing mysterious: just a row of ones.)</p>
+<p><strong>Step 3 — record what we built:</strong></p>
+<p>$$A_c = A - \bar{a}\,\mathbb{1}^{\top}$$</p>
+<p>Now multiply by $B$ and walk it through with the two laws — distributivity opens the bracket, associativity regroups:</p>
+<p>$$A_c B = \left(A - \bar{a}\,\mathbb{1}^{\top}\right)B = AB - \bar{a}\left(\mathbb{1}^{\top}B\right)$$</p>
+<p>Compute $\mathbb{1}^{\top}B$ on the workbench: $(1\;\;1)\begin{pmatrix} 1 & 2 \\ 1 & 0\end{pmatrix} = (2\;\;2)$ — a row of ones times a matrix always yields the <strong>column sums</strong>. So a correction term appears: the means of $A$'s rows, in product association with the column sums of $B$. The constant <em>passed through</em> $B$ — but came out <strong>wearing $B$</strong>.</p>
+<p><strong>Now test it numerically.</strong> Run both paths. Path 1 (center, then multiply):</p>
+<p>$$A_c B = \begin{pmatrix} -0.5 & 0.5 \\ -1 & 1 \end{pmatrix}\begin{pmatrix} 1 & 2 \\ 1 & 0 \end{pmatrix} = \begin{pmatrix} 0 & -1 \\ 0 & -2 \end{pmatrix}$$</p>
+<p>Now the naive back road — the direct imitation of the lazy trick: compute raw $AB$ first, then subtract the plain means at the end. Try it yourself before reading on. You already have raw $AB$ from the workbench in §7; subtract $3.5$ from every entry of its row 1 and $7$ from every entry of its row 2.</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+Recall the raw product: $AB = \begin{pmatrix} 7 & 6 \\ 14 & 12 \end{pmatrix}$. Subtracting the plain means:
+
+$$AB - \begin{pmatrix} 3.5 & 3.5 \\ 7 & 7 \end{pmatrix} = \begin{pmatrix} 3.5 & 2.5 \\ 7 & 5 \end{pmatrix}$$
+
+</details>
+
+<p>Compare against Path 1's $\begin{pmatrix} 0 & -1 \\ 0 & -2 \end{pmatrix}$ — not even close. The naive dream is dead.</p>
+<p>But our derived identity told us exactly <em>what</em> to subtract instead: not the plain means, but the correction $\bar{a}\left(\mathbb{1}^{\top}B\right)$. Build it and run the repaired road:</p>
+<p>$$\bar{a}\left(\mathbb{1}^{\top}B\right) = \begin{pmatrix} 3.5 \\ 7 \end{pmatrix}\begin{pmatrix} 2 & 2 \end{pmatrix} = \begin{pmatrix} 7 & 7 \\ 14 & 14 \end{pmatrix} \qquad\Longrightarrow\qquad AB - \begin{pmatrix} 7 & 7 \\ 14 & 14 \end{pmatrix} = \begin{pmatrix} 0 & -1 \\ 0 & -2 \end{pmatrix}\;\checkmark$$</p>
+<p>Path 1 recovered, exactly. So a repaired road <em>exists</em> — the identity is not just a diagnosis, it is a working recipe. Which raises the real question: if a repaired road exists, why does the blog say LayerNorm "does not work"?</p>
+<p>Because the problem isn't impossibility — it's the <strong>death of the cheap epilogue</strong>. Count what each schedule demands at the end of the matmul. The lazy trick, $D(AB)$: one multiply per entry, fed by one ready number per row. The repaired road, $AB - \bar{a}\left(\mathbb{1}^{\top}B\right)$: a <strong>second</strong> running counter per row (plain sums, to build $\bar{a}$ — and no, the squares-counter cannot be recycled; knowing $\sum x_j^2$ tells you nothing about $\sum x_j$), <strong>plus</strong> a precomputed vector of $B$'s column sums, <strong>plus</strong> a correction subtracted across every entry of every patch.</p>
+<p>About that correction — a small gift of a concept. Look at $\begin{pmatrix} 7 & 7 \\ 14 & 14\end{pmatrix}$: row 2 is exactly twice row 1. The whole matrix carries <em>one row's worth of information</em>. Matrices like this — every row a multiple of one row — are called <strong>rank-one</strong>, and every outer product is one: the column supplies each row's scale, the row supplies the shared shape. (At $n = 4096$: 16.8 million entries, only 8,192 numbers of actual content.) The good news: rank-one means the correction is never <em>built</em> — each entry's fix is one on-the-fly multiply, $\bar{a}_i \cdot (\mathbb{1}^{\top}B)_j$, and a subtract. The bad news: that is still a whole extra pass over every entry, plus the extra state, plus the coupling to $B$.</p>
+<p>And the infection spreads — here is where the divisor distinction returns with its interest: $\sigma$ is computed on the <em>centered</em> row, so even the scaling's counters — the safe piece! — must now track two quantities per row — $\sum x_j$ and $\sum x_j^2$, stitched by the identity $\sigma^2 = \tfrac{1}{n}\sum x_j^2 - \bar{x}^2$ (a one-line verification you can do yourself). The lazy trick's entire value was that the epilogue stayed trivial: one ready number, one multiply, done. The centering survives the journey through $B$ but arrives demanding new machinery — an epilogue that has stopped being a touch-up and become a computation of its own.</p>
+<p><strong>The punchline.</strong> Side by side:</p>
+<p>$$(DA)B = D(AB) \qquad\qquad \left(A - \bar{a}\,\mathbb{1}^{\top}\right)B = AB - \bar{a}\left(\mathbb{1}^{\top}B\right)$$</p>
+<p>Same two ancient laws at work in both — and both identities are <em>true</em>. The difference is what came out the far side: $D$ slid through $B$ <strong>untouched</strong>; the subtraction constant slid through and came out <strong>warped by $B$'s column sums</strong>. Only pure row-scaling survives the journey unchanged. That is the precise, provable content of the PyTorch blog's limitation list — not engineering excuses, but small theorems, each checkable on a $2\times 2$.</p>
+<p>So for the norms people actually ship — LayerNorm, affines — the algebraic door is barred. The next rescue will not rearrange the computation at all. It will make the expensive requirement itself cheap. Eight friends are waiting.</p>
+<hr />
+<h2>9. Eight friends</h2>
+<p>The algebra just slammed a door in our face: for LayerNorm and the affine, no rearrangement of parentheses will ever rescue us. So in this section we stop negotiating with the door and go through the wall instead — and the entire heavy machinery required turns out to be eight friends, a long table, and some slips of paper.</p>
+<p>Imagine a long table with 8 friends seated at it. Each holds a <strong>page</strong> of 512 numbers, no overlaps — 4096 numbers in all around the table. The task: <strong>every friend</strong> needs the total sum of squares of all 4096, because each needs it to finish her own page's work.</p>
+<p>Two ways for information to travel here, and one house rule that decides between them. Passing a <strong>slip</strong> hand to hand along the table is quick and easy — but a slip is a scrap of paper; it carries a number or two, no more. A full <strong>page</strong> of 512 numbers is too much to relay hand over hand — bulk material must be <strong>mailed</strong> through the copy desk outside the room, and that round trip is slow, with every number on the page counting against you. (This is not an arbitrary rule of the game — it mirrors the machine faithfully: the direct corridor between adjacent workshops is genuinely built for small notes, while bulk data has no path between workshops except out through the main library and back.)</p>
+<p>How will these 8 friends do this? Will they come up with an elegant plan or not? Let's look.</p>
+<p><strong>Scenario 1 — the laborious route.</strong> One friend says to the rest: "Folks, mail me all your numbers. I will do the calculation and send everyone the final result." What happens? Each of the 7 friends mails her page: $7 \times 512 = 3584$ numbers out of the room. The calculating friend then mails the answer back to 7 others. Total moved:</p>
+<p>$$7 \times 512 + 7 = 3591 \text{ numbers — all on the slow road.}$$</p>
+<p>(And it's not that her desk can't hold 4096 numbers — about 8 KB, trivially fits — it's that those numbers crossed the slow road to get there, and the answers must cross it again. The cost is in the <em>moving</em>, not the holding.)</p>
+<p><strong>Scenario 2 — the elegant plan.</strong> (One standing assumption first, granted without proof: all eight friends are equally mathematically superior and never, ever fumble a squaring. Cheeky, I know — but the arithmetic units they stand in for do enjoy exactly this reputation, so the friends get it too.) Ask yourself first: for the task at hand, does anyone ever need to see friend 1's <em>512 individual numbers</em>? Or does something smaller carry everything about her page that the others require?</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+Her single partial sum $P_1 = \sum_{\text{her page}} x_j^2$ carries everything. **512 numbers compress to one, losslessly** — because the total is a sum of sums, and addition doesn't care how you group the terms. (Our friend associativity, making her third appearance in this article.)
+
+</details>
+
+<p>So the consensus: each friend computes her own partial sum locally — free, it's her own page. Seven of them pass their single-number slips to the eighth; she adds all eight partials and passes the total $S$ back on seven slips:</p>
+<p>$$7 + 7 = 14 \text{ numbers moved — all on the fast road.}$$</p>
+<p>Compare 14 against 3591 and you get the point: roughly <strong>250 times less traffic</strong> — and the lighter traffic travels the <em>faster</em> road. To compute a sum of squares, you don't need all the entries in one place. All you need is chunked sub-sums, and those are all that ever move.</p>
+<p>Now the dictionary. The friends are <strong>workshops</strong> — in hardware-speak, <strong>CTAs</strong> (Cooperative Thread Arrays: one crew sharing one notebook; more precisely, the crew occupying a physical workshop the hardware calls an SM — a nicety beyond our needs). The table's fast slip-passing is <strong>distributed shared memory</strong> — a newer-hardware feature where up to 8 adjacent workshops federate into a <em>cluster</em> with a direct corridor between their notebooks. And the whole slips-not-pages technique is what the PyTorch blog calls <strong>Multi-CTA Norm Fusion</strong>.</p>
+<h3>9.1 And now, LayerNorm — the rescue §8 demanded</h3>
+<p>Here, at last, is the payoff this whole section exists for. Recall exactly where §8 left us: for LayerNorm, the whole-row requirement is <em>real</em> — the mean and $\sigma$ genuinely need every entry of the row, and no shuffling of parentheses dissolves that. The door is barred. But look closely at <em>why</em> the requirement felt expensive: we assumed that "seeing the whole row" meant <em>moving</em> the whole row. The eight friends have just proven otherwise — a reduction can be seen collectively while its data stays put.</p>
+<p>So let the friends run LayerNorm. What changes? Ask yourself first: what does LayerNorm's arithmetic actually demand from the full row? Look back at the divisor distinction we pocketed in §8 — the mean needs $\sum x_j$, and $\sigma$ needs... think about which running totals suffice, before reading on.</p>
+<details class="notebox"><summary>reveal — after you have tried it</summary>
+
+Two subtotals per friend, not one. Each friend computes, from her own 512 entries: her partial **plain sum** $\sum x_j$ (for the mean) and her partial **sum of squares** $\sum x_j^2$. And that is *enough* — because of the identity you can verify in one line:
+
+$$\sigma^2 = \tfrac{1}{n}\textstyle\sum_j x_j^2 \;-\; \bar{x}^2$$
+
+The full mean and the full $\sigma$ are both buildable from the two grand totals alone. No individual entry is ever needed by anyone but its owner.
+
+</details>
+
+<p>So the protocol barely changes: each slip now carries <strong>two numbers instead of one</strong>. Seven friends pass their pairs to the eighth; she adds up both grand totals and passes the pair back. Traffic: $2 \times (7 + 7) = 28$ slip-numbers instead of 14. Against 3591, who's counting?</p>
+<p>From the two totals, every friend now finishes <em>entirely at her own seat</em>: she computes the mean, builds $\sigma$ from the identity, centers her own 512 entries, divides them by $\sigma$ — and applies the affine too. Yes, even §8's other convict walks free here: the learned $g_j$ and $b_j$ are per-column constants, known to everyone in advance, and each friend simply applies the knobs belonging to <em>her own</em> 512 columns as she goes. Both of §8's barred pieces — the centering and the affine — handled, locally, in place. Nothing but four subtotal-pairs of slips ever moved, and <strong>nothing ever crosses the slow road.</strong></p>
+<p>Notice what this rescue asked of the algebra: <strong>nothing</strong>. No commuting, no sliding through $B$, no lazy epilogue. That is exactly why it works where §8's door was barred.</p>
+<hr />
+<h2>10. Closing: the dictionary, the credits, and where to go next</h2>
+<p>You have been reading a translation this whole time. Here is the dictionary — every metaphor in this article, paired with the name the industry uses. Each row points back to the section that earned it.</p>
+<table>
+<thead>
+<tr>
+<th>Our word</th>
+<th>The industry's word</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the library</td>
+<td><strong>HBM</strong> — high-bandwidth memory, the GPU's main memory (§2)</td>
+</tr>
+<tr>
+<td>the notebook</td>
+<td><strong>shared memory / SRAM</strong> — the small, fast on-chip memory (§2)</td>
+</tr>
+<tr>
+<td>operation count $W$</td>
+<td><strong>FLOPs</strong> — floating-point operations (§2)</td>
+</tr>
+<tr>
+<td>the courier's rate $R_m$</td>
+<td><strong>memory bandwidth</strong> — bytes per second on the datasheet; divide by bytes-per-number to get our numbers/second (§4)</td>
+</tr>
+<tr>
+<td>the engine, and its rate $R_a$</td>
+<td><strong>compute units</strong>, quoted in FLOPS; the matmul specialists are <strong>Tensor Cores</strong> (§4)</td>
+</tr>
+<tr>
+<td>work-per-trip ratio $I$</td>
+<td><strong>arithmetic intensity</strong> (§3)</td>
+</tr>
+<tr>
+<td>the machine's ratio $I^*$, and the comparison rule</td>
+<td>the <strong>roofline model</strong> and its balance point (§4)</td>
+</tr>
+<tr>
+<td>courier-bound</td>
+<td><strong>memory-bound</strong> / bandwidth-bound (§4)</td>
+</tr>
+<tr>
+<td>engine-bound</td>
+<td><strong>compute-bound</strong> (§4)</td>
+</tr>
+<tr>
+<td>matmul</td>
+<td><strong>GEMM</strong> — General Matrix Multiply (§4)</td>
+</tr>
+<tr>
+<td>patch</td>
+<td><strong>tile</strong>; the carving is <strong>tiling</strong> (§6)</td>
+</tr>
+<tr>
+<td>"norm needs rows, machine makes patches"</td>
+<td>the <strong>tiling difference</strong> (§6)</td>
+</tr>
+<tr>
+<td>row-counters + the theorem $(DA)B = D(AB)$</td>
+<td><strong>Lazy Pre-Norm</strong> (§7)</td>
+</tr>
+<tr>
+<td>a workshop / a friend</td>
+<td>a <strong>CTA</strong> — Cooperative Thread Array (§9)</td>
+</tr>
+<tr>
+<td>the table's corridor</td>
+<td><strong>distributed shared memory</strong>, via CTA clusters (§9)</td>
+</tr>
+<tr>
+<td>slips, not pages</td>
+<td><strong>Multi-CTA Norm Fusion</strong> (§9)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What we deliberately skipped.</strong> The original blog contains a third technique, FlashNormAttention — the same two ideas you now own, deployed inside the messier sandwich of an attention block — plus the backward pass (training needs gradients, with its own fusion story) and a deep engineering section on warp specialization, register subtiling, and memory choreography. We skipped these by design: they are the deployment logistics of principles this article built, not new principles. You lose nothing conceptual; when you are ready, they are all in the original.</p>
+<p><strong>Credits, prominently.</strong> Every technique in this article — Lazy Pre-Norm, Multi-CTA Norm Fusion, and the results they achieve — is the work of Meta's engineers, reported in the PyTorch blog <a href="https://pytorch.org/blog/towards-free-normalization-fusing-normalization-into-gemm-and-attention-kernels/">"Towards Free Normalization: Fusing Normalization into GEMM and Attention Kernels"</a>. Nothing here is new research. Our contribution is the staircase: the same building, entered from the ground floor.</p>
+<p><strong>Where you now stand.</strong> Go read the original. Our honest prediction: the introduction and core ideas will read like your own notes — you derived them — and the deep engineering will be hazy, which is fine. You can now do something better than read it: you can <em>audit</em> it — chase a number, test a claim, catch a typo. Which, you may remember, is exactly how this article began: someone confused by a tweet, deciding to count.</p>
+<hr />
+<p><em>Written by Adithya, with Claude as tutor and editor. Every derivation in this article was first worked by hand before it was written.</em></p>
+</div>
+</body>
+</html>
