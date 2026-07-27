@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Towards Free Normalization, From First Principles</title>
+<meta name="description" content="A from-first-principles companion to the PyTorch free-normalization work: derive arithmetic intensity, the roofline, and why normalization can hide inside a matmul shadow - starting from counting a 2x2 matrix. High-school math only.">
+<meta property="og:title" content="Towards Free Normalization, From First Principles">
+<meta property="og:description" content="Why is normalization slow, and how does it become free? Derived from counting upward - every constant cited or worked in front of you, with six interactive figures.">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary">
+<meta name="author" content="Adithya Giridharan">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
@@ -463,6 +469,10 @@ The full mean and the full $\sigma$ are both buildable from the two grand totals
 <p><strong>Where you now stand.</strong> Go read the original. Our honest prediction: the introduction and core ideas will read like your own notes — you derived them — and the deep engineering will be hazy, which is fine. You can now do something better than read it: you can <em>audit</em> it — chase a number, test a claim, catch a typo. Which, you may remember, is exactly how this article began: someone confused by a tweet, deciding to count.</p>
 <hr />
 <p><em>Written by Adithya, with Claude as tutor and editor. Every derivation in this article was first worked by hand before it was written.</em></p>
+<hr>
+<footer style="font-size:13.5px; color:var(--ink-soft); line-height:1.7;">
+<p>Techniques by Meta engineers, reported in the <a href="https://pytorch.org/blog/towards-free-normalization-fusing-normalization-into-gemm-and-attention-kernels/">PyTorch blog</a>. This article is the staircase, not the building. Found an error? Good - that means you were counting. Reach me on <a href="https://x.com/AG_1698">X</a> or <a href="https://github.com/ADITHYAG73">GitHub</a>.</p>
+</footer>
 </div>
 </body>
 </html>
