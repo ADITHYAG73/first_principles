@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Widget 6 — The measured race (awaiting ur GPU run)</title>
+<title>Widget 6 — The measured race</title>
 <style>
   .iw{--paper:#FDFCF9;--ink:#1A1A1E;--ink-soft:#5A5A63;--hairline:#E4E1DA;--machine:#8A8A93;
     --naive:#C4552D;--flash:#1E7A62;
@@ -27,11 +27,12 @@
 <script>
 (function(){
   // ============================================================
-  // PASTE the DATA line printed by the kaggle notebook here.
-  // format: [[N, naive_ms, flash_ms], ...]   e.g.
-  // const DATA = [[256,0.41,0.05],[512,1.2,0.09], ...];
-  var DATA = null;   // <- REPLACE null WITH UR MEASURED NUMBERS
-  var GPU  = "";     // <- e.g. "Kaggle T4"
+  // format: [[N, naive_ms, flash_ms], ...] — printed by the companion kaggle notebook.
+  // measured on Kaggle T4 (sm_75), fp16 in / fp32 accum, d = 64, single head.
+  // null in the naive column = OOM: the GPU refused to allocate the N x N matrix.
+  var DATA = [[1024,0.188,0.758],[2048,0.556,1.014],[4096,2.072,3.925],[8192,8.713,14.688],
+              [16384,40.603,58.606],[32768,193.226,220.794],[65536,null,882.26]];
+  var GPU  = "Kaggle T4";
   // ============================================================
   var m=document.getElementById('mount');
   if(!DATA){
