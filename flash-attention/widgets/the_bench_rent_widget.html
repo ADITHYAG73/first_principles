@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 2 — The bench: five tenants and one dangerous tile</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --hairline: #E4E1DA; --machine: #8A8A93;
+    --good: #2E7D4F; --bad: #B3261E; --bad-wash: rgba(179,38,30,.10);
+    --slab: #1E7A62; --slab-wash: rgba(30,122,98,.10); --slab-ink: #0C4A3A;
+    --tile: #5A50C0; --tile-wash: rgba(90,80,192,.10); --tile-ink: #322B7E;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); }
+  .iw svg { display: block; width: 100%; height: auto; }
+  .iw .scene text { font-family: var(--mono); font-size: 11px; fill: var(--ink-soft); }
+  .iw .fade { transition: opacity .8s; }
+  .iw .ledger { width: 208px; font-family: var(--mono); font-size: 12px; line-height: 1.85; }
+  .iw .lrow { display: flex; justify-content: space-between; border-bottom: 0.5px solid var(--hairline); }
+  .iw .lrow.total { border-bottom: none; border-top: 1px solid var(--ink); font-weight: 600; }
+  .iw .lrow.freerow { color: var(--machine); border-bottom: none; }
+  .iw .over { color: var(--bad); }
+  .iw .fit { color: var(--good); }
+  .iw .row2 { display: flex; gap: 14px; flex-wrap: wrap; }
+  .iw .floor { flex: 1; min-width: 300px; }
+  .iw .punch { font-size: 12.5px; font-style: italic; color: var(--ink-soft); min-height: 40px; margin-top: 8px; }
+  .iw .punch.tamed { color: var(--slab-ink); }
+  .iw .punch.fire { color: var(--bad); font-style: normal; }
+  .iw .controls { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .iw .controls label { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+  .iw input[type=range] { flex: 1; min-width: 150px; accent-color: var(--tile); }
+  .iw .brval { font-family: var(--mono); font-size: 13px; width: 44px; }
+  .iw button { font-family: var(--mono); font-size: 12px; color: var(--ink); background: #fff;
+    border: 1px solid var(--hairline); border-radius: 3px; padding: 5px 12px; cursor: pointer; }
+  .iw button:hover { border-color: var(--machine); }
+  .iw button:focus-visible, .iw input:focus-visible { outline: 2px solid var(--tile); outline-offset: 1px; }
+  .iw .constants { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); margin-top: 10px; }
+  .iw .hiddenstage { display: none; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; } }
+  @media (max-width: 620px) { .iw .ledger { width: 100%; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw">
+  <h3>The bench — five tenants and one dangerous tile</h3>
+  <p class="sub" id="subline">The full world first: Q, K, V, O are tall thin matrices (N = 1024 rows, d = 64 wide) living in HBM, and the score matrix S = QK<sup>T</sup> is the N × N monster — drawn to the same scale below. None of this fits on the bench. The machine works on <b>blocks</b>: B<sub>r</sub> asker rows, B<sub>c</sub> shelf rows, and the small tile of S where they cross.</p>
+
+  <!-- SCENE 1: the establishing shot -->
+  <div id="scene1">
+    <svg viewBox="0 0 680 300" class="scene" role="img" aria-label="Establishing shot: four tall thin matrices Q, K, V, O drawn to scale beside the huge N by N score matrix S; small blocks inside each are highlighted — those blocks are all that visits the bench.">
+      <!-- scale: 1024 units -> 220px => 0.215 px/row; d=64 -> 14px -->
+      <g class="fade" id="fullmats">
+        <!-- Q -->
+        <rect x="30" y="40" width="14" height="220" fill="var(--slab-wash)" stroke="var(--slab)" stroke-width="1"/>
+        <text x="37" y="278" text-anchor="middle">Q</text>
+        <rect x="30" y="40" width="14" height="14" fill="var(--slab)" opacity=".85" id="qblk"/>
+        <!-- K -->
+        <rect x="64" y="40" width="14" height="220" fill="var(--slab-wash)" stroke="var(--slab)" stroke-width="1"/>
+        <text x="71" y="278" text-anchor="middle">K</text>
+        <rect x="64" y="40" width="14" height="84" fill="var(--slab)" opacity=".85"/>
+        <!-- V -->
+        <rect x="98" y="40" width="14" height="220" fill="var(--slab-wash)" stroke="var(--slab)" stroke-width="1"/>
+        <text x="105" y="278" text-anchor="middle">V</text>
+        <rect x="98" y="40" width="14" height="84" fill="var(--slab)" opacity=".85"/>
+        <!-- O -->
+        <rect x="132" y="40" width="14" height="220" fill="var(--slab-wash)" stroke="var(--slab)" stroke-width="1"/>
+        <text x="139" y="278" text-anchor="middle">O</text>
+        <rect x="132" y="40" width="14" height="14" fill="var(--slab)" opacity=".85"/>
+        <!-- S -->
+        <defs>
+          <pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="var(--tile)" stroke-width="1.4"/>
+          </pattern>
+        </defs>
+        <rect x="200" y="40" width="220" height="220" fill="none" stroke="var(--tile)" stroke-width="1" stroke-dasharray="4 3"/>
+        <text x="310" y="278" text-anchor="middle">S = QK&#x1D40; — N × N, never materialized</text>
+        <rect x="200" y="40" width="84" height="14" fill="url(#hatch)" stroke="var(--tile)" stroke-width="1" id="sblk"/>
+        <text x="440" y="55" fill="var(--ink)">← only these small blocks</text>
+        <text x="440" y="72" fill="var(--ink)">ever visit the bench:</text>
+        <text x="440" y="92">B&#x1D63; = 64 asker rows of Q, O</text>
+        <text x="440" y="109">B&#x1D9C; = 390 shelf rows of K, V</text>
+        <text x="440" y="126">one B&#x1D63; × B&#x1D9C; tile of S</text>
+      </g>
+    </svg>
+    <div class="controls">
+      <button id="narrow">narrow to the bench →</button>
+    </div>
+  </div>
+
+  <!-- SCENE 2: the bench floor plan -->
+  <div id="scene2" class="hiddenstage">
+    <div class="row2">
+      <div class="floor">
+        <svg viewBox="0 0 470 330" class="scene" role="img" aria-label="The bench drawn as floor space: four thin slab rectangles of fixed width d, and the score tile whose both sides are block-sized. Dragging the asker slider stretches one side of the tile quadratically while the slabs stay thin.">
+          <text x="8" y="16" fill="var(--ink-soft)">the bench — every tenant drawn to scale (1 seat = 1 unit of area)</text>
+          <!-- slabs: drawn as width x height rectangles at scale s=0.5 px per row/col unit -->
+          <g id="rooms"></g>
+          <text x="8" y="322" id="freetext" fill="var(--machine)"></text>
+        </svg>
+        <p class="punch" id="punch" aria-live="polite"></p>
+      </div>
+      <div class="ledger">
+        <div class="lrow"><span>Q-block B&#x1D63;·d</span><span id="rQ"></span></div>
+        <div class="lrow"><span>K-block B&#x1D9C;·d</span><span id="rK"></span></div>
+        <div class="lrow"><span>V-block B&#x1D9C;·d</span><span id="rV"></span></div>
+        <div class="lrow"><span>O-block B&#x1D63;·d</span><span id="rO"></span></div>
+        <div class="lrow"><span>tile B&#x1D63;·B&#x1D9C;</span><span id="rS"></span></div>
+        <div class="lrow total"><span>total</span><span id="rT"></span></div>
+        <div class="lrow"><span>budget M</span><span>100,000</span></div>
+        <div class="lrow freerow"><span>free seats</span><span id="rF"></span></div>
+        <div class="lrow"><span>rounds N/B&#x1D9C;</span><span id="rR"></span></div>
+      </div>
+    </div>
+    <div class="controls">
+      <label for="br">B&#x1D63; (askers)</label>
+      <input type="range" id="br" min="64" max="390" step="1" value="64">
+      <span class="brval" id="brval">64</span>
+      <button id="tame">tame it (B&#x1D63; = d)</button>
+      <button id="explode">show the explosion</button>
+      <button id="back">← full world</button>
+    </div>
+    <p class="constants">fixed: d = 64 &nbsp; B&#x1D9C; = 390 &nbsp; N = 1024 &nbsp; M = 100,000 numbers &nbsp; (A100-class bench)</p>
+  </div>
+</figure>
+
+<script>
+(function(){
+  var M = 100000, d = 64, Bc = 390, N = 1024;
+  var $ = function(id){ return document.getElementById(id); };
+  var nf = function(x){ return x.toLocaleString('en-US'); };
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var PX = 0.42; // px per unit length; area then = PX^2 per seat, consistent for all tenants
+
+  $('narrow').addEventListener('click', function(){
+    $('scene1').style.display = 'none';
+    $('scene2').classList.remove('hiddenstage');
+    $('subline').innerHTML = 'The bench, alone now — SRAM as floor space, M = 100,000 seats. Every tenant is drawn to true scale: the four slabs are thin (one side pinned at d = 64), the score tile is the only tenant whose <b>both</b> sides are block-sized. Drag B<sub>r</sub> and watch geometry tell the truth the stacked numbers whisper: slabs grow linearly, the tile quadratically. The round count N/B<sub>c</sub> never moves — the asker knob cannot touch it.';
+    update(+$('br').value);
+  });
+  $('back').addEventListener('click', function(){
+    $('scene2').classList.add('hiddenstage');
+    $('scene1').style.display = '';
+  });
+
+  function room(x, y, w, h, cls, hatch){
+    var r = document.createElementNS(SVGNS, 'rect');
+    r.setAttribute('x', x); r.setAttribute('y', y);
+    r.setAttribute('width', w); r.setAttribute('height', h);
+    r.setAttribute('fill', hatch ? 'url(#hatch2)' : 'var(--slab-wash)');
+    r.setAttribute('stroke', hatch ? 'var(--tile)' : 'var(--slab)');
+    r.setAttribute('stroke-width', '1.2');
+    return r;
+  }
+  function label(x, y, txt, color){
+    var t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('fill', color || 'var(--ink-soft)');
+    t.textContent = txt;
+    return t;
+  }
+
+  function update(Br){
+    var q = Br * d, k = Bc * d, v = Bc * d, o = Br * d, s = Br * Bc;
+    var total = q + k + v + o + s;
+    var over = total > M;
+    var free = M - total;
+
+    $('rQ').textContent = nf(q);
+    $('rK').textContent = nf(k);
+    $('rV').textContent = nf(v);
+    $('rO').textContent = nf(o);
+    $('rS').textContent = nf(s);
+    var rt = $('rT');
+    rt.textContent = nf(total) + (over ? ' ✗' : ' ✓');
+    rt.className = over ? 'over' : 'fit';
+    $('rF').textContent = over ? '—' : nf(free);
+    $('rR').textContent = Math.ceil(N / Bc) + ' (unmoved)';
+
+    var g = $('rooms');
+    while (g.firstChild) g.removeChild(g.firstChild);
+    var defs = document.createElementNS(SVGNS, 'defs');
+    defs.innerHTML = '<pattern id="hatch2" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--tile-wash)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--tile)" stroke-width="1.2"/></pattern>';
+    g.appendChild(defs);
+
+    // layout: slabs stacked left (width = B*PX, height = d*PX), tile on the right (Bc*PX wide, Br*PX tall)
+    var x0 = 8, y0 = 30, gap = 8;
+    var dPx = d * PX;
+    var y = y0;
+    var slabs = [ ['Q', Br], ['O', Br], ['K', Bc], ['V', Bc] ];
+    slabs.forEach(function(sl){
+      var w = sl[1] * PX;
+      g.appendChild(room(x0, y, w, dPx));
+      g.appendChild(label(x0 + w + 6, y + dPx/2 + 4, sl[0] + ' — ' + nf(sl[1] * d) + '  (' + sl[1] + ' × ' + d + ')', 'var(--slab-ink)'));
+      y += dPx + gap;
+    });
+    // tile below
+    var tw = Bc * PX, th = Br * PX;
+    var ty = y + 4;
+    g.appendChild(room(x0, ty, tw, th, null, true));
+    g.appendChild(label(x0 + 6, ty - 4, 'tile — ' + nf(s) + '  (' + Br + ' × ' + Bc + ')', 'var(--tile-ink)'));
+
+    $('freetext').textContent = over
+      ? 'no free seats — over budget by ' + nf(total - M)
+      : 'free — ' + nf(free) + ' seats of headroom';
+
+    var p = $('punch');
+    if (Br === d){
+      p.className = 'punch tamed';
+      p.textContent = 'Tamed: the tile is ' + Br + ' × ' + Bc + ' = ' + nf(s) + ' — exactly one slab\u2019s rent (K is ' + Bc + ' × ' + d + ' = ' + nf(k) + '). Look at the shapes: the tile is now a slab rotated. Five tenants, one rent class, everything fits.';
+    } else if (over){
+      p.className = 'punch fire';
+      p.textContent = 'Over budget by ' + nf(total - M) + ' — and look where the growth went: the slabs are the same thin strips; the tile fattened on its second side. Quadratic tenants do that.';
+    } else {
+      p.className = 'punch';
+      p.textContent = 'Tile at ' + nf(s) + ' and fattening — the only tenant growing on two sides at once. The slabs\u2019 thin side is pinned at d forever.';
+    }
+  }
+
+  $('br').addEventListener('input', function(){
+    $('brval').textContent = this.value;
+    update(+this.value);
+  });
+  $('tame').addEventListener('click', function(){
+    $('br').value = d; $('brval').textContent = d; update(d);
+  });
+  $('explode').addEventListener('click', function(){
+    var slider = $('br'), target = 390, start = +slider.value;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches){
+      slider.value = target; $('brval').textContent = target; update(target); return;
+    }
+    var t0 = null;
+    function stepUp(ts){
+      if (!t0) t0 = ts;
+      var f = Math.min(1, (ts - t0) / 1400);
+      var val = Math.round(start + (target - start) * f);
+      slider.value = val; $('brval').textContent = val; update(val);
+      if (f < 1) requestAnimationFrame(stepUp);
+    }
+    requestAnimationFrame(stepUp);
+  });
+})();
+</script>
+</body>
+</html>

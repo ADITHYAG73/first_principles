@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 4 — Two ledgers: the courier's bill, before and after</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --hairline: #E4E1DA; --machine: #8A8A93;
+    --good: #2E7D4F; --bad: #B3261E;
+    --std: #C4552D; --std-wash: rgba(196,85,45,.12);
+    --flash: #1E7A62; --flash-wash: rgba(30,122,98,.12);
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); }
+  .iw .blabel { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-soft); margin: 10px 0 3px; }
+  .iw .blabel .amt { font-family: var(--mono); }
+  .iw .track { position: relative; height: 26px; background: #fff; border: 1px solid var(--hairline); border-radius: 3px; overflow: hidden; }
+  .iw .fill { position: absolute; top: 0; bottom: 0; left: 0; transition: width .5s; }
+  .iw .fill.std { background: var(--std); opacity: .85; }
+  .iw .fill.ghost { background: repeating-linear-gradient(45deg, var(--std) 0 6px, rgba(196,85,45,.45) 6px 12px); }
+  .iw .fill.flash { background: var(--flash); opacity: .9; }
+  .iw .fill span { position: absolute; inset: 0; display: flex; align-items: center; padding-left: 8px;
+    color: #fff; font-family: var(--mono); font-size: 10.5px; white-space: nowrap; }
+  .iw .ratio { margin-top: 14px; font-size: 14px; }
+  .iw .ratio b { font-family: var(--mono); color: var(--flash); font-size: 18px; }
+  .iw .breakdown { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.7; }
+  .iw .controls { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  .iw .controls label { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+  .iw input[type=range] { flex: 1; min-width: 150px; accent-color: var(--flash); }
+  .iw .nval { font-family: var(--mono); font-size: 13px; width: 84px; }
+  .iw .constants { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); margin-top: 10px; }
+  .iw .note { font-size: 12.5px; font-style: italic; color: var(--ink-soft); margin-top: 8px; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw">
+  <h3>Two ledgers — the courier's bill, before and after</h3>
+  <p class="sub">Both ledgers were counted by hand in this article: standard attention hauls T<sub>std</sub> = 4N² + 4Nd numbers (the hatched region is pure ghost traffic — S and P's four pointless trips), while the tiled machine hauls T<sub>flash</sub> ≈ 4N²d²/M. Slide N and watch the gap. The quadratic never dies — it gets divided by the bench.</p>
+
+  <div class="blabel"><span>standard — T<sub>std</sub> = 4N² <span style="font-family:var(--mono)">(ghost, hatched)</span> + 4Nd</span><span class="amt" id="stdAmt"></span></div>
+  <div class="track">
+    <div class="fill ghost" id="barGhost"></div>
+    <div class="fill std" id="barLegit"><span id="stdLbl"></span></div>
+  </div>
+
+  <div class="blabel"><span>FlashAttention — T<sub>flash</sub> = 4N²d²/M + 2Nd</span><span class="amt" id="flAmt"></span></div>
+  <div class="track">
+    <div class="fill flash" id="barFlash"><span id="flLbl"></span></div>
+  </div>
+
+  <p class="ratio">traffic ratio: <b id="ratio"></b><span id="ratioNote" style="color:var(--ink-soft); font-size:12.5px"></span></p>
+  <p class="breakdown" id="breakdown"></p>
+
+  <div class="controls">
+    <label for="nsl">N (sequence length)</label>
+    <input type="range" id="nsl" min="8" max="14" step="1" value="10">
+    <span class="nval" id="nval"></span>
+  </div>
+  <p class="note" id="note"></p>
+  <p class="constants">fixed: d = 64 &nbsp; M = 100,000 &nbsp; counts in numbers moved (multiply by 2 bytes for BF16 traffic) &nbsp; paper's receipt at GPT-2 scale: 40.3 GB vs 4.4 GB measured — our clean count brackets it from above.</p>
+</figure>
+
+<script>
+(function(){
+  var d = 64, M = 100000;
+  var $ = function(id){ return document.getElementById(id); };
+  var fmt = function(v){
+    if (v >= 1e9) return (v/1e9).toFixed(2) + ' B';
+    if (v >= 1e6) return (v/1e6).toFixed(2) + ' M';
+    if (v >= 1e3) return (v/1e3).toFixed(1) + ' k';
+    return Math.round(v).toString();
+  };
+  function update(){
+    var N = Math.pow(2, +$('nsl').value);
+    $('nval').textContent = 'N = ' + N.toLocaleString();
+    var ghost = 4*N*N, legit = 4*N*d;
+    var Tstd = ghost + legit;
+    var Tfl = 4*N*N*d*d/M + 2*N*d;
+    var scale = 100 / Tstd;
+
+    $('barGhost').style.width = (ghost*scale) + '%';
+    $('barGhost').style.left = (legit*scale) + '%';
+    $('barLegit').style.width = (legit*scale) + '%';
+    $('stdLbl').textContent = '';
+    $('stdAmt').textContent = fmt(Tstd);
+
+    $('barFlash').style.width = Math.max(0.7, Tfl*scale) + '%';
+    $('flLbl').textContent = '';
+    $('flAmt').textContent = fmt(Tfl);
+
+    var r = Tstd/Tfl;
+    $('ratio').textContent = r.toFixed(1) + '× less traffic';
+    $('ratioNote').textContent = (N === 1024) ? '  — GPT-2 scale. (Commute term alone gave the article\u2019s 26×; adding the honest shelf haul lands here. The paper measures 9× on real silicon — each step toward reality adds overhead, and the ordering 26 > 15 > 9 is itself the lesson.)' : '';
+    $('breakdown').innerHTML =
+      'ghost share of standard: ' + (ghost/Tstd*100).toFixed(1) + '%  (S and P\u2019s four trips)<br>' +
+      'flash commute term 4N²d²/M = ' + fmt(4*N*N*d*d/M) + ' · shelf haul 2Nd = ' + fmt(2*N*d);
+    $('note').textContent = 'Both machines do the same mathematics — every questionnaire still filled, every blend still poured. Only the postage differs.';
+  }
+  $('nsl').addEventListener('input', update);
+  update();
+})();
+</script>
+</body>
+</html>

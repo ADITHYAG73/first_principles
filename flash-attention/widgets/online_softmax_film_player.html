@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 1 — The film player: online softmax with fused pour</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --hairline: #E4E1DA; --machine: #8A8A93;
+    --good: #2E7D4F; --bad: #B3261E;
+    --regA: #1E7A62; --regA-wash: rgba(30,122,98,.08); --regA-ink: #0C4A3A;
+    --regB: #5A50C0; --regB-wash: rgba(90,80,192,.09); --regB-ink: #322B7E;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); }
+  .iw .stage { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+  .iw .zone { border: 1px solid var(--hairline); border-radius: 5px; background: #fff; padding: 11px 12px; }
+  .iw .ztitle { font-family: var(--mono); font-size: 10.5px; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 9px; }
+  .iw .conveyor { width: 152px; display: flex; flex-direction: column; }
+  .iw .parcels { display: flex; flex-direction: column; gap: 7px; }
+  .iw .parcel { border: 1px solid var(--hairline); border-radius: 3px; background: var(--paper);
+    font-family: var(--mono); font-size: 12px; text-align: center; padding: 6px 8px;
+    transition: opacity .4s, border-color .3s; }
+  .iw .parcel small { display: block; font-size: 10.5px; color: var(--ink-soft); margin-top: 2px; }
+  .iw .parcel.active { border-color: var(--ink); }
+  .iw .parcel.consumed { opacity: .3; }
+  .iw .bench { flex: 1; min-width: 280px; }
+  .iw .slots { display: flex; gap: 9px; margin-bottom: 9px; }
+  .iw .slot { flex: 1; border: 1px solid var(--hairline); border-radius: 4px; padding: 8px 10px;
+    transition: background .6s, border-color .6s; }
+  .iw .slot .lbl { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); margin-bottom: 2px; }
+  .iw .slot .val { font-family: var(--mono); font-size: 16.5px; }
+  .iw .slot.regA { background: var(--regA-wash); border-color: var(--regA); }
+  .iw .slot.regA .val { color: var(--regA-ink); }
+  .iw .slot.regB { background: var(--regB-wash); border-color: var(--regB); }
+  .iw .slot.regB .val { color: var(--regB-ink); }
+  .iw .chan { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .iw .chan .cl { font-family: var(--mono); font-size: 10px; color: var(--ink-soft); width: 26px; }
+  .iw .track { flex: 1; height: 14px; border: 0.5px solid var(--hairline); border-radius: 3px;
+    background: #fff; overflow: hidden; }
+  .iw .fill { height: 100%; background: var(--regA); opacity: .85; transition: width .6s, background .6s; }
+  .iw .slot.regB .fill { background: var(--regB); }
+  .iw .chan .cn { font-family: var(--mono); font-size: 11.5px; width: 50px; text-align: right; }
+  .iw .factor { font-size: 12.5px; font-style: italic; color: var(--ink-soft); min-height: 34px; margin-top: 8px; }
+  .iw .factor.fire { color: var(--bad); font-style: normal; }
+  .iw .truth { width: 172px; }
+  .iw .truth .tbody { opacity: .25; transition: opacity .8s; font-family: var(--mono); font-size: 12px; line-height: 1.7; }
+  .iw .truth .tbody.on { opacity: 1; }
+  .iw .vline { font-family: var(--serif); font-style: italic; font-size: 11.5px; color: var(--ink-soft); margin-top: 6px; }
+  .iw .vline.ok { color: var(--good); }
+  .iw .vline.no { color: var(--bad); }
+  .iw .hbm { border: 1px dashed var(--hairline); border-radius: 4px; padding: 6px 11px; margin-top: 11px;
+    font-size: 12px; font-style: italic; color: var(--ink-soft); }
+  .iw .controls { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .iw button { font-family: var(--mono); font-size: 12px; color: var(--ink); background: #fff;
+    border: 1px solid var(--hairline); border-radius: 3px; padding: 5px 12px; cursor: pointer; }
+  .iw button:hover { border-color: var(--machine); }
+  .iw button:focus-visible { outline: 2px solid var(--regA); outline-offset: 1px; }
+  .iw label.naive { display: flex; gap: 6px; align-items: center; font-family: var(--mono);
+    font-size: 11.5px; color: var(--ink-soft); cursor: pointer; }
+  .iw .narr { font-size: 13px; line-height: 1.55; margin: 10px 0 0; min-height: 40px; }
+  @keyframes iwsqueeze { 0% { transform: scale(1); } 45% { transform: scale(.94); } 100% { transform: scale(1); } }
+  .iw .squeeze { animation: iwsqueeze .7s ease; }
+  .iw .hiddenstage { display: none; }
+  .iw .est { margin-bottom: 4px; }
+  .iw .est .mats { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .iw .est .mat { text-align: center; }
+  .iw .est .mname { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; }
+  .iw .est .mg { display: grid; gap: 3px; }
+  .iw .est .mg.c2 { grid-template-columns: repeat(2, 40px); }
+  .iw .est .mg.c3 { grid-template-columns: repeat(3, 40px); }
+  .iw .est .mc { border: 0.5px solid var(--hairline); border-radius: 3px; background: #fff;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+    height: 26px; display: flex; align-items: center; justify-content: center; }
+  .iw .est .mc.ours { border: 1.5px solid var(--regA); color: var(--regA-ink); background: var(--regA-wash); }
+  .iw .est .mc.dim { background: #EFEDE6; border: 0.5px solid var(--machine); color: var(--machine); }
+  .iw .est .rowtag { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft);
+    display: flex; align-items: center; height: 26px; white-space: nowrap; }
+  .iw .est .rowtag.ours { color: var(--regA-ink); font-weight: 600; }
+  .iw .est .mg.c3 { grid-template-columns: repeat(3, 40px) auto; column-gap: 6px; }
+  .iw .est .note { font-size: 12.5px; font-style: italic; color: var(--ink-soft); margin: 10px 0 8px; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; animation: none !important; } }
+  @media (max-width: 640px) {
+    .iw .stage { flex-direction: column; }
+    .iw .conveyor { width: 100%; }
+    .iw .conveyor .parcels { flex-direction: row; }
+    .iw .parcel { flex: 1; }
+    .iw .truth { width: 100%; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw" id="iwfp">
+  <h3>The film player — a softmax that refuses to wait</h3>
+  <p class="sub">One row of an N = 3, d = 2 attention, played in slow motion — in the full machine, every row of S runs its own private copy of this notebook, all at once. Scores arrive one frame at a time, each holding hands with its ingredient v; the notebook commits early and repairs itself. Two strokes per frame: repair the past, then admit the newcomer.</p>
+
+  <div class="est" id="est">
+    <div class="mats">
+      <div class="mat"><div class="mname">S = QK&#x1D40; — raw scores</div>
+        <div class="mg c3">
+          <div class="mc dim">s&#8321;&#8321;</div><div class="mc dim">s&#8321;&#8322;</div><div class="mc dim">s&#8321;&#8323;</div><span class="rowtag">row 1 — its own notebook</span>
+          <div class="mc ours">101</div><div class="mc ours">100</div><div class="mc ours">102</div><span class="rowtag ours">← row 2, the clinic</span>
+          <div class="mc dim">s&#8323;&#8321;</div><div class="mc dim">s&#8323;&#8322;</div><div class="mc dim">s&#8323;&#8323;</div><span class="rowtag">row 3 — its own notebook</span>
+        </div>
+      </div>
+      <div class="mat"><div class="mname">V — ingredients (shared shelf)</div>
+        <div class="mg c2">
+          <div class="mc ours">1</div><div class="mc ours">0</div>
+          <div class="mc ours">0</div><div class="mc ours">1</div>
+          <div class="mc ours">1</div><div class="mc ours">1</div>
+        </div>
+      </div>
+    </div>
+    <p class="note">The whole world: a 3 × 3 score matrix and a 3 × 2 shelf. The clinic watches <b>one row</b> — token 2's questionnaire, highlighted — and because every asker shops the whole shelf, all three ingredient rows ride along. Rows 1 and 3 run their own identical notebooks elsewhere; we follow this one.</p>
+    <div class="controls"><button id="enter">enter the clinic →</button></div>
+  </div>
+
+  <div id="clinic" class="hiddenstage">
+  <div class="stage">
+    <div class="zone conveyor">
+      <div class="ztitle">conveyor — pairs (s, v)</div>
+      <div class="parcels" id="parcels"></div>
+    </div>
+
+    <div class="zone bench">
+      <div class="ztitle">the bench notebook</div>
+      <div class="slots">
+        <div class="slot" id="sM"><div class="lbl">m — the king</div><div class="val" id="vM">−∞</div></div>
+        <div class="slot" id="sR"><div class="lbl">r — room total</div><div class="val" id="vR">0</div></div>
+      </div>
+      <div class="slot" id="sO">
+        <div class="lbl">o — running blend</div>
+        <div class="chan"><span class="cl">ch 1</span><div class="track"><div class="fill" id="f1" style="width:0%"></div></div><span class="cn" id="n1">0.000</span></div>
+        <div class="chan"><span class="cl">ch 2</span><div class="track"><div class="fill" id="f2" style="width:0%"></div></div><span class="cn" id="n2">0.000</span></div>
+      </div>
+      <p class="factor" id="factor" aria-live="polite"></p>
+    </div>
+
+    <div class="zone truth">
+      <div class="ztitle">ground truth — full row</div>
+      <div class="tbody" id="tbody">
+        p = [0.245, 0.090, 0.665]<br>
+        o = [0.910, 0.755]
+        <div class="vline" id="vline">— awaiting the film's end</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hbm">HBM, the library — parcels rise from here, one visit each. Watch the whole film: nothing is ever written back down. That absence is the entire victory.</div>
+
+  <div class="controls">
+    <button id="step"><span id="stepLbl">frame 1 — stroke 1: repair</span></button>
+    <button id="reset">reset</button>
+    <label class="naive"><input type="checkbox" id="naive"> naive mode — no max-shift</label>
+  </div>
+  <p class="narr" id="narr" aria-live="polite">Press step. The first stroke repairs the past (empty, so nothing happens); the second admits the newcomer. Repair before admission — always, in that order.</p>
+  </div>
+</figure>
+
+<script>
+  document.getElementById('enter').addEventListener('click', function(){
+    document.getElementById('est').style.display = 'none';
+    document.getElementById('clinic').classList.remove('hiddenstage');
+  });
+</script>
+<script>
+(function(){
+  var E = Math.exp;
+  var frames = [{s:101, v:[1,0]}, {s:100, v:[0,1]}, {s:102, v:[1,1]}];
+  var st;
+  var $ = function(id){ return document.getElementById(id); };
+
+  function fmt(x){
+    if (!isFinite(x)) return x > 0 ? 'inf' : '−∞';
+    if (Math.abs(x) >= 1e6) return x.toExponential(2);
+    return (+x.toFixed(3)).toString();
+  }
+  function setReg(cls){
+    ['sM','sR','sO'].forEach(function(id){
+      var el = $(id);
+      el.classList.remove('regA','regB');
+      if (cls) el.classList.add(cls);
+    });
+  }
+  function pulse(){
+    ['sM','sR','sO'].forEach(function(id){
+      var el = $(id); el.classList.remove('squeeze'); void el.offsetWidth; el.classList.add('squeeze');
+    });
+  }
+  function render(){
+    $('vM').textContent = fmt(st.m);
+    $('vR').textContent = fmt(st.r);
+    $('f1').style.width = Math.min(100, Math.abs(st.o[0]) * 100) + '%';
+    $('f2').style.width = Math.min(100, Math.abs(st.o[1]) * 100) + '%';
+    $('n1').textContent = fmt(st.o[0]);
+    $('n2').textContent = fmt(st.o[1]);
+    var h = '';
+    frames.forEach(function(fr, i){
+      var cls = 'parcel' + (i < st.f ? ' consumed' : (i === st.f && !st.done ? ' active' : ''));
+      h += '<div class="' + cls + '">s = ' + fr.s + '<small>v = [' + fr.v.join(', ') + ']</small></div>';
+    });
+    $('parcels').innerHTML = h;
+    $('stepLbl').textContent = st.done ? 'film over'
+      : ('frame ' + (st.f + 1) + ' — ' + (st.stroke === 0 ? 'stroke 1: repair' : 'stroke 2: admit'));
+  }
+  function narr(t){ $('narr').textContent = t; }
+  function factor(t, fire){
+    var el = $('factor');
+    el.textContent = t;
+    el.classList.toggle('fire', !!fire);
+  }
+  function init(){
+    st = { f: 0, stroke: 0, m: -Infinity, r: 0, o: [0, 0], reg: '', done: false };
+    setReg(''); factor('');
+    $('tbody').classList.remove('on');
+    var v = $('vline'); v.className = 'vline'; v.textContent = '— awaiting the film\u2019s end';
+    narr('Press step. The first stroke repairs the past (empty, so nothing happens); the second admits the newcomer. Repair before admission — always, in that order.');
+    render();
+  }
+
+  $('step').addEventListener('click', function(){
+    if (st.done) return;
+    var naive = $('naive').checked;
+    var fr = frames[st.f];
+
+    if (st.stroke === 0){
+      if (naive){
+        factor('Naive mode: no kings, no shifting — raw exponentials only.');
+        narr('No repair stroke exists in naive land. Straight to admission.');
+        st.stroke = 1; render(); return;
+      }
+      var mOld = st.m, mNew = Math.max(st.m, fr.s);
+      var coup = isFinite(mOld) && mNew > mOld;
+      var conv = isFinite(mOld) ? E(mOld - mNew) : 0;
+      st.r = conv * st.r;
+      st.m = mNew;
+      if (coup){
+        st.reg = 'regB'; setReg('regB'); pulse();
+        factor('Coup — the crown passes to ' + fr.s + '. The whole past re-based by one factor: × e^(' + (mOld - mNew) + ') = ' + fmt(conv) + '.');
+        narr('One multiplication fixed every citizen at once — they were all mis-shifted by the same amount. The blend finishes its repair at admission, when the new room total exists.');
+      } else if (isFinite(mOld)){
+        setReg(st.reg || 'regA');
+        factor('The king survives — currency factor e^0 = 1. Nothing to re-base.');
+        narr('No dethroning. But watch the next stroke: the room still grows, so the past still dilutes. Dilution happens at every admission; conversion only at a coup.');
+      } else {
+        st.reg = 'regA'; setReg('regA');
+        factor('Cold start — an empty past needs no repair. The sentinel −∞ loses to any real score.');
+        narr('One law, no special cases: max(−∞, s) crowns the first arrival automatically.');
+      }
+      st.stroke = 1; render(); return;
+    }
+
+    if (naive){
+      var dep = E(fr.s);
+      st.r = st.r + dep;
+      if (!isFinite(st.r)){
+        $('vR').textContent = 'inf';
+        factor('e^' + fr.s + ' ≈ 10^' + Math.round(fr.s * 0.4343) + ' — the jar catches fire. The overflow is the motive; shift invariance is the license that prevents it.', true);
+        narr('Floating point cannot hold that number. Toggle naive mode off and reset to watch the lawful machine sail through the same scores.');
+        st.done = true; render(); return;
+      }
+    } else {
+      var dep2 = E(fr.s - st.m);
+      var rOld = st.r;
+      st.r = st.r + dep2;
+      var c = rOld > 0 ? rOld / st.r : 0;
+      var w = dep2 / st.r;
+      st.o = [c * st.o[0] + w * fr.v[0], c * st.o[1] + w * fr.v[1]];
+      pulse();
+      factor('Admitted: deposit e^(' + (fr.s - st.m) + ') = ' + fmt(dep2) + ' joins the room; incumbents diluted by × ' + fmt(c) + '.');
+    }
+
+    st.f++; st.stroke = 0;
+    if (st.f >= frames.length){
+      st.done = true;
+      $('tbody').classList.add('on');
+      var ok = Math.abs(st.o[0] - 0.909969) < 0.002 && Math.abs(st.o[1] - 0.755272) < 0.002;
+      var v = $('vline');
+      v.textContent = ok ? '✓ the notebook matches, to the digit' : '✗ mismatch — inspect';
+      v.className = 'vline ' + (ok ? 'ok' : 'no');
+      narr('Film over. The notebook never saw the whole row at once, committed early, repaired itself — and landed exactly on the true softmax. Repair is the price of refusal to wait.');
+    } else {
+      narr('Next parcel approaching: score ' + frames[st.f].s + ', ingredient [' + frames[st.f].v.join(', ') + '].');
+    }
+    render();
+  });
+
+  $('reset').addEventListener('click', init);
+  init();
+})();
+</script>
+</body>
+</html>

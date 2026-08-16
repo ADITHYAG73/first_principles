@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 6 — The measured race</title>
+<style>
+  .iw{--paper:#FDFCF9;--ink:#1A1A1E;--ink-soft:#5A5A63;--hairline:#E4E1DA;--machine:#8A8A93;
+    --naive:#C4552D;--flash:#1E7A62;
+    --serif:Charter,Georgia,'Times New Roman',serif;--mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+    background:var(--paper);color:var(--ink);font-family:var(--serif);border:1px solid var(--hairline);
+    border-radius:6px;padding:20px;max-width:720px;margin:0 auto}
+  .iw h3{margin:0 0 2px;font-size:16px;font-weight:600}
+  .iw .sub{margin:0 0 12px;font-size:13px;color:var(--ink-soft)}
+  .iw svg{display:block;width:100%;height:auto}
+  .iw text{font-family:var(--mono);font-size:10.5px;fill:var(--ink-soft)}
+  .iw .pending{border:1px dashed var(--hairline);border-radius:5px;padding:14px;font-size:13px;
+    font-style:italic;color:var(--ink-soft)}
+</style>
+</head>
+<body style="margin:0;padding:24px;background:#f3f1ec;">
+<figure class="iw">
+  <h3>the measured race — my own Fig. 2</h3>
+  <p class="sub">naive materialise-everything attention vs the Triton kernel, wall-clock, on real GPU silicon. numbers produced by the companion Kaggle notebook — run it urself and compare.</p>
+  <div id="mount"></div>
+</figure>
+<script>
+(function(){
+  // ============================================================
+  // format: [[N, naive_ms, flash_ms], ...] — printed by the companion kaggle notebook.
+  // measured on Kaggle T4 (sm_75), fp16 in / fp32 accum, d = 64, single head.
+  // null in the naive column = OOM: the GPU refused to allocate the N x N matrix.
+  var DATA = [[1024,0.188,0.758],[2048,0.556,1.014],[4096,2.072,3.925],[8192,8.713,14.688],
+              [16384,40.603,58.606],[32768,193.226,220.794],[65536,null,882.26]];
+  var GPU  = "Kaggle T4";
+  // ============================================================
+  var m=document.getElementById('mount');
+  if(!DATA){
+    m.innerHTML='<div class="pending">no data yet — this widget refuses to fabricate a benchmark. '
+      +'run the companion notebook (link in the article), copy the printed <b>const DATA = ...</b> line '
+      +'into this file, and the plot draws itself. verification over decoration, always.</div>';
+    return;
+  }
+  var W=680,H=320,pl=60,pr=20,pt=16,pb=42,pw=W-pl-pr,ph=H-pt-pb;
+  // a null in column 1 means naive OOM'd at that N — the wall, not a missing measurement.
+  var ns=DATA.map(function(r){return r[0]}),
+      all=DATA.reduce(function(a,r){return a.concat([r[1],r[2]])},[])
+              .filter(function(v){return v!=null});
+  var lx=function(n){return pl+(Math.log2(n)-Math.log2(ns[0]))/(Math.log2(ns[ns.length-1])-Math.log2(ns[0]))*pw};
+  var mmax=Math.max.apply(null,all), mmin=Math.min.apply(null,all);
+  var ly=function(v){return pt+ph-(Math.log10(v)-Math.log10(mmin))/(Math.log10(mmax)-Math.log10(mmin))*ph};
+  // pen lifts on a null: the line stops where the measurement stops, it does not interpolate over a death.
+  function path(idx,col){
+    var pen=false, d=DATA.map(function(r){
+      if(r[idx]==null){pen=false;return ''}
+      var seg=(pen?'L':'M')+lx(r[0]).toFixed(1)+' '+ly(r[idx]).toFixed(1); pen=true; return seg;
+    }).join('');
+    return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2"/>'
+      + DATA.filter(function(r){return r[idx]!=null})
+            .map(function(r){return '<circle cx="'+lx(r[0])+'" cy="'+ly(r[idx])+'" r="3.5" fill="'+col+'"/>'}).join('');
+  }
+  var s='<svg viewBox="0 0 '+W+' '+H+'">';
+  s+='<line x1="'+pl+'" y1="'+(pt+ph)+'" x2="'+(pl+pw)+'" y2="'+(pt+ph)+'" stroke="var(--hairline)"/>';
+  ns.forEach(function(n){s+='<text x="'+lx(n)+'" y="'+(pt+ph+16)+'" text-anchor="middle">'+n+'</text>'});
+  s+='<text x="'+(pl+pw/2)+'" y="'+(H-6)+'" text-anchor="middle">N — sequence length (log)</text>';
+  s+='<text x="14" y="'+(pt+ph/2)+'" text-anchor="middle" transform="rotate(-90 14 '+(pt+ph/2)+')">ms per forward (log)</text>';
+  s+=path(1,'var(--naive)')+path(2,'var(--flash)');
+  s+='<text x="'+(pl+8)+'" y="'+(pt+14)+'" fill="var(--naive)">naive (S, P materialised)</text>';
+  s+='<text x="'+(pl+8)+'" y="'+(pt+30)+'" fill="var(--flash)">flash (triton kernel)</text>';
+  // the wall: first N where naive could not allocate S. flash keeps answering past it.
+  var wall=null;
+  DATA.forEach(function(r){if(wall===null&&r[1]==null)wall=r[0]});
+  if(wall!==null){
+    s+='<line x1="'+lx(wall)+'" y1="'+pt+'" x2="'+lx(wall)+'" y2="'+(pt+ph)+'" stroke="var(--naive)" stroke-width="1" stroke-dasharray="4 3"/>';
+    s+='<text x="'+(lx(wall)-6)+'" y="'+(pt+ph-8)+'" text-anchor="end" fill="var(--naive)">OOM wall — naive cannot allocate S</text>';
+  }
+  var paired=DATA.filter(function(r){return r[1]!=null&&r[2]!=null});
+  var last=paired[paired.length-1];
+  if(last) s+='<text x="'+(pl+pw-4)+'" y="'+(pt+14)+'" text-anchor="end">'+(last[1]/last[2]).toFixed(2)+'x at N='+last[0]+(GPU?' ('+GPU+')':'')+'</text>';
+  s+='</svg>';
+  m.innerHTML=s;
+})();
+</script>
+</body>
+</html>

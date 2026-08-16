@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flash attention, from first principles</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+ onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+<style>
+ :root{--paper:#FDFCF9;--ink:#1A1A1E;--ink-soft:#5A5A63;--hairline:#E4E1DA;
+  --serif:Charter,Georgia,'Times New Roman',serif;--mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace}
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);line-height:1.65}
+ .wrap{display:flex;max-width:1080px;margin:0 auto}
+ nav{position:sticky;top:0;align-self:flex-start;width:230px;padding:28px 18px;font-family:var(--mono);
+  font-size:12px;border-right:1px solid var(--hairline);height:100vh;overflow-y:auto}
+ nav a{display:block;color:var(--ink-soft);text-decoration:none;padding:5px 0}
+ nav a:hover{color:var(--ink)}
+ main{flex:1;padding:34px 40px;max-width:780px;min-width:0}
+ h1{font-size:26px;line-height:1.25} h2{font-size:19px;margin-top:2em} h3{font-size:16px}
+ table{border-collapse:collapse;font-size:14px;margin:1em 0;display:block;overflow-x:auto}
+ th,td{border:0.5px solid var(--hairline);padding:6px 10px;text-align:left}
+ th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);font-weight:400}
+ blockquote{border-left:3px solid var(--hairline);margin:1.2em 0;padding:2px 16px;background:#fff;border-radius:0 4px 4px 0}
+ code{font-family:var(--mono);font-size:.9em;background:#f1efe9;padding:1px 5px;border-radius:3px}
+ details{border:1px solid var(--hairline);border-radius:5px;padding:10px 14px;margin:1em 0;background:#fff}
+ summary{cursor:pointer;font-family:var(--mono);font-size:13px}
+ iframe.widget{width:100%;height:640px;border:none;margin:1.2em 0;border-radius:6px;background:#f3f1ec}
+ a{color:#1E5AA8} a.cite{font-size:.88em}
+ .katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+ section{margin-bottom:3.2em;border-bottom:1px solid var(--hairline);padding-bottom:1.4em}
+ @media(max-width:860px){nav{display:none}main{padding:22px 18px}}
+</style></head><body>
+<div class="wrap">
+<nav><strong style="color:var(--ink)">flash attention</strong><br><br><a href="#sec1">1. the receipt</a><a href="#sec2">2. what is attention?</a><a href="#sec3">3. the crime scene</a><a href="#sec4">4. the two walls</a><a href="#sec5">5. online softmax — the game</a><a href="#sec6">6. the scaffold</a><a href="#sec7">7. the theorem & the wall</a><a href="#sec8">8. the backward pass</a><a href="#sec9">9. receipts & confessions</a>
+<br><a href="../">← all articles</a></nav>
+<main>
+<section id="sec1"><h1>Flash Attention, From First Principles</h1>
+<p>In this article we are going to see, in detail, flash attention. <em>Attention Is All You Need</em> <a class="cite" href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Vaswani et al., 2017</a> was a watershed moment in the world of generative modeling, especially in NLP. Hard to believe it was nearly a decade ago — and here we are, in a world where LLMs are chipping away at long-unsolved Erdős problems , designing drugs (<a class="cite" href="https://www.nobelprize.org/prizes/chemistry/2024/press-release/" target="_blank" rel="noopener">Nobel Chemistry 2024 — AlphaFold</a>) , and (for better and worse) even orchestrating cyber operations (<a class="cite" href="https://www.anthropic.com/news/disrupting-AI-espionage" target="_blank" rel="noopener">Anthropic, 2025</a>) . Agents are an integral part of our lives now, and in this article we are going to see one of the atomic concepts that powered this revolution. Sit tight.. You will enjoy this ride, I can assure you that.</p>
+<p>What if I told you — you can do MORE computation, in LESS time, and still deliver the <strong>exact same output</strong>? Not an approximation. The same attention, computed in a different order. We are generous on computation but frugal on time; we would rather compute — or <em>recompute</em> — than wait. In this article we will see exactly how and why flash attention is faster while being exactly attention itself.</p>
+<p>Don't take my word for it. Here is the receipt, straight from the paper's own measurements (<a class="cite" href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">FlashAttention paper, Fig. 2 — GPT-2 medium, N=1024, A100</a>):</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>GFLOPs (work done)</th>
+<th>GB moved</th>
+<th>time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>standard attention</td>
+<td>66.6</td>
+<td>40.3</td>
+<td>41.7 ms</td>
+</tr>
+<tr>
+<td>flash attention</td>
+<td><strong>75.2</strong></td>
+<td><strong>4.4</strong></td>
+<td><strong>7.3 ms</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Read that again. Flash attention does MORE arithmetic — and finishes almost six times faster, moving nine times less data. How on earth?</p>
+<p>Here is my promise: by the end of this article, you will not have <em>read</em> the answer — you will have <strong>derived all three of those numbers yourself</strong>, with a pencil, starting from a 3×2 matrix. Let's go.</p></section><section id="sec2"><h1>What is attention?</h1>
+<p>$$O = \mathrm{softmax}(QK^\top)\,V$$</p>
+<p>I know some of you may be thinking: we have been seeing this equation forever, what do you offer new? My answer — nothing new, technically speaking. But what I promise is that by the end of this article you would have internalised it in an intuitive fashion, derived every piece of it with your own hands. That's the dimension I really care about. It's a promise, and I believe I can deliver.</p>
+<p>Let's go to the smallest case we can comfortably hold in our heads. (I was tempted to go square, but am deliberately staying rectangular — later sections live in rectangular block sizes $B_r$, $B_c$, and I don't want the two side-lengths masquerading as each other. Square cases we reserve for simplifying upper-bound calculations, and we will say so when we do.)</p>
+<p>Consider three matrices, each of shape 3×2:</p>
+<p>$$Q = \begin{bmatrix} 1 & 0 \\ 0 & 2 \\ 1 & 1 \end{bmatrix} \qquad K = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 2 & 0 \end{bmatrix} \qquad V = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & 1 \end{bmatrix}$$</p>
+<p><strong>terminology freeze</strong> — pin this table before anything else, we will use it for the entire article:</p>
+<table>
+<thead>
+<tr>
+<th>symbol</th>
+<th>meaning</th>
+<th>shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$N$</td>
+<td>context length — how many tokens (here 3). the lever the <em>user</em> pulls</td>
+<td>—</td>
+</tr>
+<tr>
+<td>$d$</td>
+<td>head dimension — how long each token's vector is (here 2). an <em>architect's</em> constant, small and fixed</td>
+<td>—</td>
+</tr>
+<tr>
+<td>$Q, K, V$</td>
+<td>queries, keys, values. <strong>row $i$ of each belongs to token $i$</strong> — three outfits the same token wears</td>
+<td>$N \times d$</td>
+</tr>
+<tr>
+<td>$S = QK^\top$</td>
+<td>raw scores</td>
+<td>$N \times N$</td>
+</tr>
+<tr>
+<td>$P = \mathrm{softmax}(S)$</td>
+<td>proportions (row-wise softmax)</td>
+<td>$N \times N$</td>
+</tr>
+<tr>
+<td>$O$</td>
+<td>outputs</td>
+<td>$N \times d$</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>notebox — the two levers.</strong> $d$-wide things are <em>representations</em> (a token's vector). $N$-wide things are <em>score-lists</em> (a token judged against everyone). Keep them separate in your head at all times; half the confusion in this subject is these two masquerading as each other.</p>
+</blockquote>
+<p>Now, I ask you to compute $O$. The journey has three stops.</p>
+<h2>Stop 1: the raw scores</h2>
+<p>$$S = QK^\top = \begin{bmatrix} 1 & 0 & 2 \\ 2 & 2 & 0 \\ 2 & 1 & 2 \end{bmatrix}$$</p>
+<p>Note $S$ is <strong>square</strong>, unlike its inputs — and think about what it means. Its rows are the tokens of $N$... And its columns? You are right — also the tokens of $N$. Entry $S_{ij}$ is the dot product of token $i$'s query row with token $j$'s key row: token $i$ <em>asking</em>, token $j$ <em>being asked</em>. $S$ is the full questionnaire — every token interrogating every token.</p>
+<p>And pay close attention: $S_{12} = 0$ but $S_{21} = 2$. They <strong>need not</strong> be the same. The importance of token 2 <em>to</em> token 1 is a different question from the importance of token 1 <em>to</em> token 2 — relevance in language is directional ("sat" urgently needs "cat"; "cat" barely needs "sat").</p>
+<blockquote>
+<p><strong>notebox — why two matrices?</strong> if each token had just ONE vector $x_i$, the score would be $x_i \cdot x_j$ — and dot products don't care about order, so the matrix would be <em>forced</em> symmetric. Giving each token separate query and key vectors is precisely what buys the <em>freedom</em> to be asymmetric. (can $S_{12} = S_{21}$ still happen? Sure — specific vectors can align that way, and if you set $Q = K$ the whole matrix turns symmetric. The split doesn't forbid symmetry; it stops <em>forcing</em> it.)</p>
+</blockquote>
+<h2>Stop 2: from scores to proportions — why softmax?</h2>
+<p>Here is the plan for stop 3, stated upfront so stop 2 has a purpose: each token's output will be a <strong>blend</strong> of the value rows — some amount of $v_1$, some of $v_2$, some of $v_3$, mixed according to relevance. And there is the problem: raw scores cannot be blend amounts. A score of 2 is not "2 of something"; scores can even be negative, and a recipe cannot call for −0.3 cups of milk. We need to convert each row of raw scores into legal <em>proportions</em>. Normalization is not a math ritual — it is what turns opinions into recipe amounts.</p>
+<p>So let's design the converter. Take a row vector and ask: how much share does each element deserve?</p>
+<p><strong>candidate 1 — divide by the sum.</strong> try $s_{\text{row}} = [1, 2, 3]$: sum is 6, shares $[1/6,\, 2/6,\, 3/6]$. Works! Now try $s_{\text{row}} = [1, -1, 0]$:</p>
+<p>$$\text{sum} = 0 \qquad s_{\text{norm}} = [\,1/0,\; -1/0,\; 0/0\,]$$</p>
+<p>Oops. The machine just beeps. Division by zero — and even when the sum isn't zero, negative "shares" sneak through. Dead.</p>
+<p><strong>candidate 2 — take modulus, then divide by the sum.</strong> for $[1, -1, 0]$: modulus sum is 2, shares $[1/2,\, 1/2,\, 0]$. Positive, sums to one... But do you see the problem? Try $[1, 1, 0]$:</p>
+<p>$$[1, -1, 0] \;\longrightarrow\; [1/2,\, 1/2,\, 0] \qquad [1, 1, 0] \;\longrightarrow\; [1/2,\, 1/2,\, 0]$$</p>
+<p>Two vectors living in different parts of the space — one <em>dislikes</em> its second element, the other <em>likes</em> it — collapse to the identical shares. The modulus erased the sign, and the sign carried the opinion. Semantic confusion.</p>
+<p>So let's write down what we actually demand. <strong>three properties</strong>, and notice each dead candidate died against a different one:</p>
+<ol>
+<li><strong>every share ≥ 0</strong> — a recipe holds no negative amounts (candidate 1 died here, plus the fire)</li>
+<li><strong>shares sum to 1</strong> — proportions of a whole (think percentages)</li>
+<li><strong>faithfulness</strong> — the converter must preserve what the scores <em>said</em>: higher score, bigger share; dislike stays small; different opinions land on different shares (candidate 2 died here — it met properties 1 and 2 perfectly and still lobotomised the meaning)</li>
+</ol>
+<blockquote>
+<p><strong>notebox — the weights ambush.</strong> the word "weights" is doing double duty in ML. <em>model weights</em> — learned parameters — are signed floats, negative all the time. <em>attention weights</em> — these shares we are building — are computed fresh from each input and must be legal proportions. Same english word, different mathematical citizens. When this article says weights, it means the shares.</p>
+</blockquote>
+<p>The survivor: the <strong>exponential — followed by the very same divide-by-the-sum we started with</strong>, which works now because $e^x$ makes everything positive first. $e^x > 0$ always, and $e^x$ is strictly increasing, so order is preserved and different opinions stay different. That pair — exponentiate, then normalize — is softmax:</p>
+<p>$$\mathrm{softmax}(s)_j = \frac{e^{s_j}}{\sum_k e^{s_k}}$$</p>
+<p>Check it on the killer case $[1, -1, 0]$:</p>
+<p>$$e^1 + e^{-1} + e^0 \approx 2.718 + 0.368 + 1 = 4.086 \qquad \Rightarrow \qquad [\,0.665,\; 0.090,\; 0.245\,]$$</p>
+<p>All shares positive, sum to 1, and the disliked element gets a <em>small but honest</em> share. And on $[1, 1, 0]$: $[\,0.422,\; 0.422,\; 0.155\,]$ — different vector, different shares, no collapse. Faithfulness lives.</p>
+<blockquote>
+<p><strong>notebox — a name for later.</strong> numbers that are all ≥ 0 and sum to 1, used to mix vectors, make what mathematicians call a <strong>convex combination</strong> — the blend can never escape the region spanned by its ingredients. Remember the phrase; it pays rent in stop 3.</p>
+</blockquote>
+<h2>Stop 2.5: don't set the machine on fire</h2>
+<p>Now consider $s_{\text{row}} = [101, 100, 102]$. Apply softmax directly: $e^{101} \approx 10^{43.9}$. The machine beeps again — float16 overflows at ~65,504, and even float32 dies near $e^{89}$. These are perfectly reasonable scores and the formula is <em>uncomputable</em>.</p>
+<p>The rescue: subtract the row's max from every element first. Max is 102, so</p>
+<p>$$[101, 100, 102] \;\longrightarrow\; [-1, -2, 0]$$</p>
+<p>Every shifted score ≤ 0, every exponential ≤ 1. Fireproof forever. But hang on — am I allowed to just mutilate the input because its numbers are inconvenient? Here is the beautiful part:</p>
+<p><strong>s₁ = [101, 100, 102] and s₂ = [−1, −2, 0] have the exact same softmax.</strong></p>
+<p>DON'T BELIEVE ME? Three layers of conviction, escalating:</p>
+<details><summary><b>open the box: proof, witness, miracle</b></summary>
+
+**the proof (three lines, fully general).** shift every score by any constant $c$:
+
+$$\mathrm{softmax}(s + c)_j = \frac{e^{s_j + c}}{\sum_k e^{s_k + c}} = \frac{e^c \cdot e^{s_j}}{e^c \cdot \sum_k e^{s_k}} = \frac{e^{s_j}}{\sum_k e^{s_k}} = \mathrm{softmax}(s)_j$$
+
+The $e^c$ cancels top and bottom — for ANY shift, ANY vector, computable or not.
+
+**the witness (both sides computable — check me).** take $[1, 2, 3]$ vs its shifted twin $[-2, -1, 0]$:
+
+$$[1,2,3]: \frac{[e^1, e^2, e^3]}{e^1+e^2+e^3} = [\,0.090,\; 0.245,\; 0.665\,] \qquad [-2,-1,0]: \frac{[e^{-2}, e^{-1}, e^0]}{e^{-2}+e^{-1}+1} = [\,0.090,\; 0.245,\; 0.665\,]$$
+
+Identical, to the digit. The proof isn't lying.
+
+**the miracle.** now $[101, 100, 102]$: the left side CANNOT be computed on any hardware you own — and yet you know its answer exactly, because the shifted twin $[-1, -2, 0]$ gives $[\,0.245,\; 0.090,\; 0.665\,]$, and the proof guarantees the twins agree. An impossible computation, answered. That is what a theorem buys you that arithmetic can't.
+
+</details>
+
+<p><strong>SOFTMAX IS SHIFT INVARIANT.</strong> the overflow was the <em>motive</em> for subtracting the max; shift invariance is the <em>license</em> that makes it legal. Motive plus license — remember this pair, it returns with a vengeance later in this article.</p>
+<h2>Stop 3: the pour</h2>
+<p>Apply the (max-shifted) softmax to every row of our $S$:</p>
+<p>$$P = \begin{bmatrix} 0.245 & 0.090 & 0.665 \\ 0.468 & 0.468 & 0.063 \\ 0.422 & 0.155 & 0.422 \end{bmatrix} \qquad \text{(every row ≥ 0, every row sums to 1 — verify!)}$$</p>
+<p>And pour: row $i$ of $O$ is token $i$'s blend of the value rows, mixed by its own proportions:</p>
+<p>$$o_i = P_{i1}\, v_1 + P_{i2}\, v_2 + P_{i3}\, v_3 \qquad\qquad O = PV = \begin{bmatrix} 0.910 & 0.755 \\ 0.532 & 0.532 \\ 0.845 & 0.578 \end{bmatrix}$$</p>
+<p>Look at what happened geometrically: each output row sits <em>inside</em> the region spanned by $v_1, v_2, v_3$ — the convex combination promise cashing in. Token 1's blend leans hard toward $v_3$ (share 0.665, its top score); token 2 sits nearly on the fence between $v_1$ and $v_2$ (0.468 each). The questionnaire decided where each token stands.</p>
+<blockquote>
+<p><strong>notebox — what softmax does and does NOT constrain.</strong> the mandate (≥ 0, sums to 1) lives on $P$ and only on $P$. Rows of $O$ inherit no such law — their entries are whatever the ingredients dictate, negative and unnormalised as real learned values are. <em>softmax disciplines the shares, never the goods.</em></p>
+</blockquote>
+<p>So what has a token actually DONE by replacing itself with such a blend? Before attention, token 2 was only itself. After, its representation is built from material that lived in <em>other tokens' rows</em> — pulled over in proportion to measured relevance. One token asked, everyone answered, and the relevant answers flowed in.</p>
+<p>There is an everyday word for what these tokens just did.</p>
+<p><strong>ATTENTION IS HOW TOKENS COMMUNICATE.</strong></p>
+<p>Each token asks every token how relevant it is ($S$, the questionnaires), converts the answers into faithful shares ($P$, the laundering), and rebuilds itself as a blend of what the relevant ones were carrying ($O$, the pour). That one sentence is this entire article's anchor — because communication, it turns out, is exactly the thing that gets expensive. Every token talking to every token is $N^2$ conversations. Beautiful for expressiveness. Brutal, as the next section counts, for the courier.</p></section><section id="sec3"><h1>Anatomy of standard attention — the crime scene</h1>
+<p>By now you are familiar: the journey to $O$ passes through $S$ and $P$. Now let's watch how that journey actually runs on hardware — and count what it costs.</p>
+<p>Your inputs $Q, K, V$ all reside in <strong>HBM</strong> (High Bandwidth Memory) — the GPU's large main memory. Large, but <em>slow relative to where the work happens</em>. The work happens on the <strong>SRAM workbench</strong> — tiny (a few hundred KB per compute unit) but blazing fast. And between the two runs the <strong>courier</strong> — the memory machinery hauling numbers back and forth. One law governs this whole article: <em>compute on the bench is nearly free; courier trips are the expensive currency.</em> (<a class="cite" href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">paper §2.1: A100 — HBM 40 GB @ 1.5 TB/s, SRAM ~19 TB/s</a>)</p>
+<p>(readers of my first article <a class="cite" href="../free-normalization/" target="_blank" rel="noopener">the free-normalization article</a> will recognise this cast — warehouse, bench, courier. If you are new: that article derives why this economy works the way it does; here we just use it.)</p>
+<p>Standard attention runs as <strong>three separate kernels</strong> — three separate programs, and nothing survives on the bench between programs. Watch the courier:</p>
+<ol>
+<li>Haul $Q$ and $K$ in from HBM to compute $S$ — <strong>in: $2Nd$</strong></li>
+<li>Write $S$ to HBM — <strong>out: $N^2$</strong></li>
+<li>Load $S$ back from HBM to compute $P$ — <strong>in: $N^2$</strong></li>
+<li>Write $P$ to HBM — <strong>out: $N^2$</strong></li>
+<li>Haul $P$ and $V$ in from HBM — <strong>in: $N^2 + Nd$</strong></li>
+<li>Write $O$ to HBM — <strong>out: $Nd$</strong></li>
+</ol>
+<p>(why wasn't $V$ fetched back in step 1? Because kernel 3 is a <em>different program</em> — the bench was wiped clean twice in between. That wipe IS the crime, as you are about to see.)</p>
+<p>Total movement bill:</p>
+<p>$$T_{\text{std}} = 4Nd + 4N^2$$</p>
+<p>(this is the paper’s Theorem 2, §3.2: standard attention requires Θ(Nd + N²) HBM accesses, while FlashAttention requires Θ(N²d²M⁻¹) — <a class="cite" href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">Dao et al., 2022</a>)</p>
+<p>Now — how much of this is IRREDUCIBLE? The inputs must come in ($Q + K + V = 3Nd$) and the answer must go out ($O = Nd$). So $4Nd$ is the fundamental cost of the operation, non-negotiable.</p>
+<p>Everything else — the entire $4N^2$ — is <strong>ghost traffic</strong>: four trips that exist for no mathematical reason. Look at them again: $S$ was written out (step 2) only to be <em>immediately read back</em> (step 3). $P$ likewise (steps 4–5). The questionnaire matrix takes two full round-trips through slow memory purely because the pipeline is chopped into three programs that cannot hand objects to each other across the bench. The courier is shuttling paperwork between departments of the same office.</p>
+<p>And at real scale the ghost dominates utterly. GPT-2 scale: $N = 1024$, $d = 64$. The ratio of ghost to legitimate is $N^2/Nd = N/d = 16$. <strong>out of every 17 numbers the courier hauls, 16 are ghost traffic — roughly 94% of the entire bill.</strong> the biggest thing the machine builds, it builds only to throw across the slow wire. Twice.</p>
+<iframe class="widget" src="widgets/two_ledgers_widget.html" loading="lazy" title="two-ledgers — the hatched region is the ghost"></iframe>
+
+<p>So the sec1 paradox half-resolves: now we know <em>where</em> the 40.3 GB lives. The questions that remain: can this traffic be reduced at all? And if so — what is the tradeoff we must accept? The next two sections find out.</p></section><section id="sec4"><h1>The two walls</h1>
+<p>The dream is obvious, so let's state it: <strong>fuse the three kernels into one.</strong> compute $S$, launder it, pour $O$ — all in a single visit to the bench, so $S$ and $P$ live and die on the bench and never touch HBM. Traffic collapses to the irreducible $4Nd$. Why hasn't everyone always done this? Two walls.</p>
+<h2>Wall 1 — the bench is too small</h2>
+<p>Say the bench holds $M = 100{,}000$ numbers (an A100-class budget). Now look at the size of $S$. At GPT-2 scale, $N = 1024$, so $S$ has $N^2 \approx 1.05$ <strong>million</strong> entries — roughly <em>ten times the entire bench</em>, before $Q$, $K$, $V$, $P$, $O$ ask for their seats. The biggest object in the pipeline cannot visit the workshop whole. So clearly you can't fit $S$ in — forget computing softmax on it and multiplying by $V$.</p>
+<p>Fine — so we chunk. Store only a piece of $S$ at a time. And here wall 2 rises.</p>
+<h2>Wall 2 — the denominator wants the whole row</h2>
+<p>Think about what softmax needs. Its denominator is $\sum_k e^{s_k}$ — it touches <strong>every score in the row</strong> — and even the max-shift (our fireproofing license from earlier) needs the row's max, which you cannot know until you have seen the whole row.</p>
+<p>And here is the brutal part: the chunking that wall 1 forces runs <em>along the rows</em>. When the machine tiles, each asker-row's scores come into existence in <strong>installments</strong> — a row of $S$ is that token's questionnaire, 1024 scores long, and it gets minted a few hundred scores at a time as different chunks of $K$ visit the bench. At no moment do all 1024 coexist anywhere. It is like hearing a sentence one phrase at a time, with no replays allowed.</p>
+<p>(careful with what gets chopped: a token's <em>own</em> vectors — its $q$, $k$, $v$ rows, each $d$ wide — always travel whole; no one splits a token in half. What arrives in installments is the row of <strong>scores</strong>. $d$-wide things are representations; $N$-wide things are score-lists — and it is the score-lists that get chopped.)</p>
+<h2>The interlock</h2>
+<p>So here is the contradiction, stated plainly:</p>
+<p><strong>wall 1 forces chopping. Wall 2 forbids it.</strong> the bench cannot hold a row's scores whole; the softmax cannot finish on a fragment. Size forbids wholeness; the denominator demands it.</p>
+<p>Every attempt to fuse the kernels smashes into this interlock — which is exactly why the three-kernel crime survived for years. The next section dissolves the contradiction, and it does so in a way I genuinely find beautiful: the machine will <strong>commit early, and repair itself.</strong></p></section><section id="sec5"><h1>Online softmax — the game</h1>
+<p>In the last section we stopped at a contradiction: we could not store whole rows, but softmax needed whole rows. So what do we do? As always when we hit a roadblock — go back to fundamentals, find the single atomic problem, and solve it in its simplest form. The hardware flexing its muscles at scale is just show. We own the brain.</p>
+<p>Let's play a game.</p>
+<p>$$s = [\,101,\; 100,\; 102\,]$$</p>
+<p>(Look familiar? It should — this is row 1 of our anchor, $[1, 0, 2]$, shifted up by 100. Shift invariance says the two rows have identical softmax. Keep that in your back pocket.)</p>
+<p>You will be given this vector one element at a time, and your goal is — of course — to compute its softmax (what did you guys expect?). But here is the thing: this is a game, and games have rules:</p>
+<ol>
+<li><strong>each number arrives once.</strong> whatever you want to do with it, do it while its in your hands — you will never see her again!!</li>
+<li><strong>you may keep a small notebook</strong> — a few running scalars of your choosing, updated as you go. But never the raw elements themselves; no stockpiling the vector in disguise. (derived quantities of the number <em>currently in your hands</em> are fair game — you just can't warehouse it.)</li>
+<li><strong>no time travel.</strong> you will not know the later elements in advance. THIS MOMENT IS ALL You HAVE → MAKE IT COUNT.</li>
+</ol>
+<p>And the stakes, so you know this is not a puzzle-page filler: <strong>if a winning notebook exists, the whole-row requirement dissolves, chunking becomes legal, and the quadratic ghost dies.</strong> the entire article hangs on this game being winnable.</p>
+<p>One hint before you begin: on a per-row basis the bottleneck is never COMPUTE — you have unlimited freedom to compute, or <em>recompute</em> rather (well, that's a giveaway in itself.. But its fine). So: 101 arrives, and you will never see it again — what do you do? Then 100 arrives — what changes? Then 102 — and why is 102 special? Or is it special at all?</p>
+<details><summary><b>open the box below to find the answers to all</b></summary>
+
+When you receive 101, the first thing most of you thought: exponentiate it and store the value. Fair enough, good start — but the machine refuses. You can't compute $e^{101}$, let alone store it (sec 2's fire, remember). Ok, the rescue we learned: subtract the max, 102, first. **but hang on — you have not seen 102 yet.** at this moment all you have is 101, and you must make do with it. Is the game unplayable? Definitely not. Watch.
+
+## The notebook
+
+Track two scalars: $m$, the running max, and $r$, the running exponential sum — the denominator under construction. Sentinels: $m = -\infty$, $r = 0$ (chosen so the general rule needs no special first-step case: $\max(-\infty, s) = s$ crowns any first arrival automatically).
+
+**101 knocks.** $m = \max(-\infty, 101) = 101$. And $r = e^{101 - m} = e^0 = 1$. No fire — we subtracted the best max we have *so far*. A provisional license.
+
+**100 knocks.** $\max(101, 100)$ — the max survives. The newcomer just deposits in the reigning currency: $r = 1 + e^{100-101} = 1 + e^{-1}$. So far so good.
+
+**102 knocks.** what is the max now? Oopsy — **we have a coup.** the old queen falls; 102 > 101, long live the new queen. And now look at the problem: our running sum $r$ was computed with respect to the OLD queen. The regime just changed, and every term in $r$ is measured in dead currency. Are we doomed? You bet not. Pay close attention — let's reverse-engineer.
+
+What we have: $\;r_{\text{have}} = e^{101-101} + e^{100-101} = 1 + e^{-1}$
+
+What we want: $\;r_{\text{want}} = e^{101-102} + e^{100-102} = e^{-1} + e^{-2}$
+
+We can't admit 102 yet — first we repair the existing sum. (though she is the new queen, a queen's arithmetic is only valid if her subjects are in order; they better fix themselves before facing her wrath.) so here is the question:
+
+$$r_{\text{want}} = \text{factor} \times r_{\text{have}} \qquad \text{— what is that factor?}$$
+
+**FACTOR IS ALL YOU NEED!!**
+
+Look at the two sums term by term: every exponent dropped by exactly 1. So multiply the whole of $r_{\text{have}}$ by $e^{-1}$ — one wholesale multiplication fixes every term at once. And the holy-moly moment: $e^{-1} = e^{101 - 102} = e^{\,m_{\text{old}} - m_{\text{new}}}$ — **the factor is built entirely from the two numbers the notebook legally holds.** no stored elements, no revisiting, no time travel. Repair on demand. Simple as that.
+
+Sum repaired: $r = e^{-1} + e^{-2}$. NOW the queen is admitted — her own term, $e^{102-102} = e^0 = 1$, joins the room:
+
+$$r = 1 + e^{-1} + e^{-2} = 1.5032$$
+
+And that's it. You have conquered the game. Notice the rhythm that emerged, because it is the law of everything that follows: **two strokes per arrival — repair the past, then admit the newcomer.** always in that order.
+
+</details>
+
+<h2>The citizenship laws</h2>
+<p>What did the game teach us? Two laws:</p>
+<ol>
+<li>Every number in the notebook is measured against the reigning queen — the max is the <em>currency</em>, not a gatekeeper. A coup re-denominates everything.</li>
+<li>You cannot admit a newcomer into $r$ while the past sits in dead currency. <strong>coup first demands repair; admission comes second.</strong></li>
+</ol>
+<p>In mathematical form — the update run at every arrival $s$:</p>
+<p>$$m_{\text{new}} = \max(m_{\text{old}},\, s) \qquad\qquad r_{\text{new}} = e^{\,m_{\text{old}} - m_{\text{new}}}\; r_{\text{old}} \;+\; e^{\,s - m_{\text{new}}}$$</p>
+<p>Verify for yourself: when there is NO coup, $m_{\text{old}} = m_{\text{new}}$ and the factor is $e^0 = 1$ — the repair <em>gracefully does nothing</em>, and the law collapses to plain admission. One law, no special cases.</p>
+<blockquote>
+<p><strong>and now open the FlashAttention paper to Algorithm 1, line 11.</strong> that's this equation — their $\ell$ is our $r$, their $e^{m - m^{\text{new}}}$ is our repair factor. <strong>you did not read that line. You just derived it.</strong> this is the entire thesis of this article, cashing out for the first time.</p>
+</blockquote>
+<h2>The pour joins the game</h2>
+<p>But — are we done? What was our final goal anyway? You bet we still have $O$ to think about. Our old friend $O = PV$. The ultimate pour.</p>
+<p>Recall the game's rule 1 — and realise it applies to $V$'s rows too. One rule for all: each score arrives <em>holding hands with its ingredient</em> $v$, and the ingredient is present now and gone after. You cannot stockpile the $v$'s and pour at the end — stockpiling is the crime we are escaping. So the pour must happen AS scores arrive, with weights that are not final yet. <strong>we refuse to wait.</strong> the notebook grows a third resident: $o$, the running blend, poured provisionally and — you guessed it — <em>repaired</em> when regimes change.</p>
+<p>So what is the blend's repair factor? Here is the derivation, and it is three lines:</p>
+<details><summary><b>open the box: the blend's repair factor</b></summary>
+
+Take any one citizen $j$ already inside the blend. Its provisional weight (old regime) and its correct weight (new regime):
+
+$$w_j^{\text{stale}} = \frac{e^{\,s_j - m_{\text{old}}}}{r_{\text{old}}} \qquad\qquad w_j^{\text{correct}} = \frac{e^{\,s_j - m_{\text{new}}}}{r_{\text{new}}}$$
+
+Form the ratio, flip the bottom fraction, regroup:
+
+$$\frac{w_j^{\text{correct}}}{w_j^{\text{stale}}} = \frac{e^{\,s_j - m_{\text{new}}}}{e^{\,s_j - m_{\text{old}}}} \cdot \frac{r_{\text{old}}}{r_{\text{new}}} = e^{\,m_{\text{old}} - m_{\text{new}}} \cdot \frac{r_{\text{old}}}{r_{\text{new}}}$$
+
+And look — **$s_j$ cancelled.** the correction is the SAME for every citizen, regardless of their score. That uniformity is the license: one scalar, multiplied into the whole blend vector, repairs every term simultaneously:
+
+$$c = e^{\,m_{\text{old}} - m_{\text{new}}} \cdot \frac{r_{\text{old}}}{r_{\text{new}}} \qquad\qquad o_{\text{new}} = c \cdot o_{\text{old}} + \frac{e^{\,s - m_{\text{new}}}}{r_{\text{new}}}\, v$$
+
+</details>
+
+<blockquote>
+<p><strong>notebox — the two gears of $c$, and a trap.</strong> the scalar $c$ has two factors doing two different jobs. The <strong>conversion gear</strong> $e^{\,m_{\text{old}}-m_{\text{new}}}$ fires only at a coup (idles at $e^0 = 1$ otherwise). The <strong>dilution gear</strong> $r_{\text{old}}/r_{\text{new}}$ fires at <em>every</em> admission — because every newcomer's deposit grows the room, so every incumbent's share must shrink. The trap every reader falls into (I did): "no coup → no repair." wrong — no coup means no <em>conversion</em>, but the past still <em>dilutes</em>, because the room still grew. Dilution is not punishment; it is justice — each incumbent keeps exactly the share the full-row softmax will eventually grant it.</p>
+</blockquote>
+<p>So the full notebook is the triplet $\langle m, r, o \rangle$ — max, running sum, running blend. Let's run the whole film, with ingredients $v_1 = [1,0]$, $v_2 = [0,1]$, $v_3 = [1,1]$ riding alongside our scores:</p>
+<table>
+<thead>
+<tr>
+<th>arrival</th>
+<th>$m$ (queen)</th>
+<th>$r$</th>
+<th>$o$ (running blend)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>— (cold start)</td>
+<td>$-\infty$</td>
+<td>0</td>
+<td>$[0,\,0]$</td>
+</tr>
+<tr>
+<td>$s = 101$</td>
+<td>101</td>
+<td>1</td>
+<td>$[1,\,0]$</td>
+</tr>
+<tr>
+<td>$s = 100$</td>
+<td>101</td>
+<td>$1.368$</td>
+<td>$[0.731,\,0.269]$</td>
+</tr>
+<tr>
+<td>$s = 102$ — <strong>coup</strong></td>
+<td>102</td>
+<td>$1.503$</td>
+<td>$[0.910,\,0.755]$</td>
+</tr>
+</tbody>
+</table>
+<p>And the moment of truth. Compute the same row the ordinary, full-row way — softmax of $[101,100,102]$ gives weights $[0.245,\, 0.090,\, 0.665]$, pour them onto the three $v$'s — and you land on</p>
+<p>$$o_{\text{ground truth}} = [\,0.910,\; 0.755\,]$$</p>
+<p><strong>to the digit.</strong> the notebook never saw the whole row at once, committed early, repaired itself — and arrived exactly where the patient full-row computation arrives. (and one more delight: those weights $[0.245, 0.090, 0.665]$ — go look at row 1 of $P$ back in section 2. Same numbers. Of course: same gaps.)</p>
+<iframe class="widget" src="widgets/online_softmax_film_player.html" loading="lazy" title="the film player — step through this exact table, two strokes per arrival, coup and all. toggle naive mode to watch the jar catch fire at $e^{101}$"></iframe>
+
+<blockquote>
+<p><strong>and Algorithm 1, line 12:</strong> the blend update you just derived — the $c \cdot o + \text{new pour}$ — is that line, in the paper written per-row in matrix clothing ($\mathrm{diag}(\ell)^{-1}$ and friends). Both of the algorithm's famously cryptic lines are now things you invented at a bench with three numbers.</p>
+</blockquote>
+<p><strong>REPAIR IS THE PRICE OF REFUSAL TO WAIT.</strong></p></section><section id="sec6"><h1>The scaffold — tiles, rent, and who commutes</h1>
+<p>In the last section we found the theme: REPAIR IS THE PRICE OF REFUSAL TO WAIT. We illustrated it on a single row, one number at a time. In reality, hardware is <strong>batch-o-philic</strong> — it always yearns for batches. If you have read my previous article on GEMM vs free-norm <a class="cite" href="../free-normalization/" target="_blank" rel="noopener">the free-normalization article</a>, you are familiar with blockwise matmul: $Q$ and $K$ are giants, so what GPUs actually compute is</p>
+<p>$$S_{\text{tile}} = Q_{\text{tile}}\, K_{\text{tile}}^\top$$</p>
+<p>A whole <em>tile</em> of scores minted at once — several askers' scores against one section of keys.</p>
+<p>Does our notebook survive group arrivals? Absolutely yes — because all said and done, <strong>softmax is and will always be a row-wise operation</strong>, and a tile is nothing but several rows stacked together. Each asker-row of the tile is one asker's <em>installment</em> of scores, and each such row-strip does its own private bookkeeping the moment its minted: a <strong>local queen</strong> $\tilde{m}_i$ (the strip's max) and a <strong>local sum</strong> $\tilde{r}_i$ (the strip's mini-denominator, shifted by its local queen). The strip then presents itself to that asker's notebook as one composite newcomer, and the deposit converts by the <em>same</em> law we already own — currency conversion, second costume:</p>
+<p>$$m_{\text{new}} = \max(m_{\text{old}},\, \tilde{m}) \qquad\qquad r_{\text{new}} = e^{\,m_{\text{old}} - m_{\text{new}}}\, r_{\text{old}} \;+\; e^{\,\tilde{m} - m_{\text{new}}}\, \tilde{r}$$</p>
+<p>Elegance check: a "block" of one element has $\tilde{m} = s$ and $\tilde{r} = e^0 = 1$, and the formula collapses to exactly last section's law. <strong>one rule for all</strong> — the game we played was the general case in disguise. And the repair scalar $c$ for the running blends? Unchanged, applied per row. Tiles arrive as rectangles; queens rule rows.</p>
+<blockquote>
+<p><strong>notebox — where is P?</strong> careful: what the notebook holds are <em>provisional weights under the current regime</em> — what P would be <strong>if the row ended here</strong>. The finished P is never minted anywhere, forward pass or otherwise. It exists only implicitly, inside $\langle m, r \rangle$. Remember this; it becomes the hero of the backward-pass story.</p>
+</blockquote>
+<h2>The rent arithmetic</h2>
+<p>Tiles solved the <em>arrival</em> question. Now the <em>size</em> question — how big can a tile be? Not a style choice: the bench decides.</p>
+<p>During one visit, the bench must simultaneously hold four block tenants:</p>
+<p>$$Q_{\text{tile}}: B_r \times d \qquad K_{\text{tile}}: B_c \times d \qquad V_{\text{tile}}: B_c \times d \qquad O_{\text{tile}}: B_r \times d$$</p>
+<p>Start with the square toy — one knob, $B_r = B_c = B$. Total rent $4Bd$, bench capacity $M$:</p>
+<p>$$4Bd = M \qquad \Rightarrow \qquad B = \left\lceil \frac{M}{4d} \right\rceil$$</p>
+<p>(why ceiling and not floor? Don't read generosity into it — these are sizing <em>heuristics</em>, not physical caps. $M$ itself is an approximate budget, real kernels round block sizes to friendly powers of two, and the last ragged block is handled separately. The ceiling just guarantees a nonzero block.)</p>
+<p>Plug in the A100-class numbers: $M = 100{,}000$, $d = 64$ → $B \approx 390$ rows per block. Do the division yourself — its your first rent calculation.</p>
+<p><strong>and now the audit that breaks the square plan.</strong> we forgot a fifth tenant: the minted score tile itself, $B_r \times B_c$. At $B = 390$: $390 \times 390 \approx 152{,}000$ numbers — <strong>bigger than the entire bench</strong>, before the four slabs even sit down. Bankrupt.</p>
+<p>So something must shrink — and here is the crucial point: nothing gets <em>truncated</em>. We never cut a minted tile; we choose the block shapes <strong>before minting</strong>. And the side that gets capped is the <strong>asker side</strong>:</p>
+<p>$$B_c = \left\lceil \frac{M}{4d} \right\rceil \approx 390 \qquad\qquad B_r = \min\!\left(\left\lceil \frac{M}{4d} \right\rceil,\; d\right) = 64$$</p>
+<p>Only 64 askers shop at a time, while the shelf of keys stays long at 390. Why cap the askers and not the shelf? Two reasons, and the second is the punchline. First: the shelf <em>wants</em> to be long — a long shelf means fewer sections, fewer rounds, and (as the schedule below shows) fewer re-hauls. Second: at $B_r = d$, look at the tile's rent —</p>
+<p>$$B_r \times B_c = 64 \times 390 = 390 \times 64 = B_c \times d$$</p>
+<p><strong>the tile's rent exactly equals one slab's rent</strong> — the same as a K-block. The quadratic tenant, tamed to slab class. Five tenants, one rent tier, everything fits. That's not "smaller" — that's the <em>principled</em> size.</p>
+<iframe class="widget" src="widgets/the_bench_rent_widget.html" loading="lazy" title="the bench — drag $B_r$ and watch the tile explode past the budget, then snap it to $B_r = d$ and watch it tamed"></iframe>
+
+<h2>The schedule — who commutes?</h2>
+<p>Now imagine the machine running. Toy world: $N = 4$ tokens, $d = 2$, blocks of 2 — so two shelf sections (K,V rows 1–2, then rows 3–4) and two asker blocks (Q rows 1–2 with their O rows and notebooks, then rows 3–4).</p>
+<p>The paper ships <strong>one</strong> itinerary (<a class="cite" href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">Algorithm 1 — outer loop over K,V blocks, inner over Q blocks</a>): shelf sections take residence one at a time, and the asker blocks parade past each resident section.</p>
+<p>And here is the anatomy that decides everything. Watch one asker visit: the block hauls in its Q rows (the questionnaires), hauls in its O rows, works, and — the crucial part — <strong>hauls its O rows back OUT</strong>. Why does O ride both ways? Because O is <em>wet paint</em>: half-finished blends, mid-repair, that must survive eviction (the next asker block needs the bench) and return next round for more repair. An asker visit costs three trucks: Q in, O in, O out. A shelf section, by contrast, is read-only merchandise — K in, V in, nothing to write back. <strong>two trucks.</strong></p>
+<p>Tally the toy world's bill and the O-traffic dominates the entire schedule — the wet paint's round-trips are the single biggest line item.</p>
+<p>Now the question the paper didn't ask: <em>what if the roles swapped?</em> let an asker block take residence, and parade the shelf sections past it:</p>
+<p>Count again — and the bill drops. Because now <strong>the wet paint never travels</strong>: a resident asker's blend stays on the bench through every parade, dries, and ships out exactly once, finished. The O round-trips vanish. The verdict, one sentence: <strong>the light traveler should commute.</strong> the shelf carries two trucks a visit; the askers carry three; FA-1 sat the light party and commuted the heavy one.</p>
+<p>And if you just felt clever deriving that — you re-derived history. This exact flip was first implemented by Phil Tillet in Triton and then formalised as <strong>FlashAttention-2</strong> (<a class="cite" href="https://arxiv.org/abs/2307.08691" target="_blank" rel="noopener">Dao, 2023 — FlashAttention-2</a>; the flip was first implemented by Phil Tillet in <a class="cite" href="https://github.com/triton-lang/triton" target="_blank" rel="noopener">Triton</a>). One honesty note though: the traffic saving you just counted is real but constant-factor; FA-2's <em>headline</em> motive was parallelism — with askers outer, different blocks run on different compute units sharing nothing. That story is next-article territory.</p>
+<iframe class="widget" src="widgets/the_itinerary_comic.html" loading="lazy" title="the itinerary comic — flip through the schedule page by page, then verify the timetables urself"></iframe>
+
+<p>So the machine is now fully assembled: tiles minted, notebooks running per row, blends repairing in place — and the full $S$ never exists anywhere. Next section: count what this machine actually hauls, and collect the prize.</p></section><section id="sec7"><h1>The theorem — and where it stops working</h1>
+<p>Recall from the crime scene <a href="#sec3">the crime scene</a>: standard attention's movement bill was</p>
+<p>$$T_{\text{std}} = 4Nd + 4N^2$$</p>
+<p>In the last section we built the tiled machine and its schedule. Moment of truth — did all these trials and tribulations actually reduce the bill? Let's measure.</p>
+<p><strong>the shelf's haul:</strong> every K,V row visits the bench exactly once → $2Nd$. Cheap, irreducible-class.</p>
+<p><strong>the askers' commute</strong> (the inner loop, in programming terms (confirmed against Algorithm 1 — <a class="cite" href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">Dao et al., 2022</a>)): one full parade of Q costs $Nd$. And how many times must the parade run? Once per shelf section — $N/B_c$ rounds. So</p>
+<p>$$\text{commute} = \frac{N}{B_c} \times Nd = \frac{N^2 d}{B_c}$$</p>
+<p>Now recall the rent: $B_c = M/4d$. Substitute — do it yourself, its one line:</p>
+<p>$$\text{commute} = \frac{N^2 d}{M/4d} = \frac{4\,N^2 d^2}{M}$$</p>
+<p>Hola!! We got the cost down. Who is the saviour? Of course — its $M$. We could not kill the quadratic term, but we <strong>divided it by the bench</strong>. A bigger bench now means cheaper postage — a lever that simply did not exist before. And this expression — $\Theta(N^2 d^2 / M)$ — is the paper's Theorem 2 (<a class="cite" href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">Theorem 2</a>). <strong>you did not read that theorem. You just manufactured it</strong> from rent arithmetic and a timetable.</p>
+<p>(what about O? It commutes alongside Q — your own visit anatomy from last section, O in and O out — which multiplies the <em>constant</em>, not the shape. Same $N^2d^2/M$ species; the paper's $\Theta$ absorbs both. We derive with Q for cleanliness and bill honestly in the footnote.)</p>
+<h2>The two ledgers meet</h2>
+<p>At GPT-2 scale ($N = 1024$, $d = 64$, $M = 100{,}000$), set the bills side by side — and be honest about the ladder:</p>
+<ul>
+<li>commute term alone vs the crime term: <strong>~26× less traffic</strong></li>
+<li>add the shelf haul and the honest constants: <strong>~15×</strong></li>
+<li>the paper's <em>measured</em> number on real silicon: <strong>9×</strong> (<a class="cite" href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">Fig. 2</a>)</li>
+</ul>
+<p>26 → 15 → 9: each step toward reality adds overhead — and the ordering itself is the lesson. Our pencil count brackets the measurement from above, exactly as a first-principles count should.</p>
+<iframe class="widget" src="widgets/two_ledgers_widget.html" loading="lazy" title="two ledgers — slide N and watch the gap"></iframe>
+
+<h2>The breakeven — where the bench stops saving you</h2>
+<p>So is flash attention always a win? Form the ratio of flash's commute against standard's crime term:</p>
+<p>$$\frac{4N^2d^2/M}{4N^2} = \frac{d^2}{M}$$</p>
+<p>The $N$'s cancel — read that again. The ratio is <strong>independent of sequence length</strong>. Whether flash wins is a pure property of head size versus bench size, the same at every context length. Flash wins when $d^2/M < 1$, I.e.</p>
+<p>$$d < \sqrt{M} \approx 316$$</p>
+<p>That's the wall. Now walk the real world along the curve:</p>
+<ul>
+<li><strong>GPT-2 heads</strong>, $d = 64$: ratio 0.04 — flash hauls 4% of the crime it replaced</li>
+<li><strong>Llama-class heads</strong>, $d = 128$: ratio 0.16 — still a thumping win</li>
+<li><strong>the Gemma family</strong>, $d = 256$: ratio 0.66 — flirting with the wall (<a class="cite" href="https://huggingface.co/docs/transformers/en/model_doc/gemma2" target="_blank" rel="noopener">HF Gemma config</a>; <a class="cite" href="https://developers.googleblog.com/en/gemma-explained-overview-gemma-model-family-architectures/" target="_blank" rel="noopener">Google — Gemma architecture</a>)</li>
+<li><strong>Gemma 4's global layers</strong>, $d = 512$: ratio 2.6 — <strong>crossed the wall in march 2026, and promptly lost flash attention entirely.</strong> every FA kernel caps at head_dim 256; those layers fall back to slower attention (<a class="cite" href="https://github.com/Dao-AILab/flash-attention/issues" target="_blank" rel="noopener">Dao-AILab/flash-attention issues</a>). The wall we derived with a pencil is roughly where the real ecosystem stops building kernels.</li>
+<li>and the one-fat-head fantasy, $d = 3072$: ratio ≈ 94 — flash would haul ninety-four crimes' worth. Nobody builds this. Now you know why.</li>
+</ul>
+<iframe class="widget" src="widgets/the_breakeven_widget.html" loading="lazy" title="the breakeven curve — hover any d"></iframe>
+
+<p>Which lands the closing insight, and its my favourite in this article: <strong>multi-head attention is flash attention's secret ally.</strong> the 2017 design split $d_{\text{model}}$ into many small heads (for expressiveness reasons); the 2022 trick wins precisely and only in the small-$d$ regime. Neither team planned for the other. Deep structure compounds — no prophets required.</p></section><section id="sec8"><h1>The backward pass — resurrection</h1>
+<p>Thus far, everything we discussed was the forward pass. But what makes neural networks what they are? Correct — the <strong>backward pass</strong>, the thing that actually trains these models. And the backward pass has a demand that threatens everything we just built.</p>
+<h2>A quick primer on backprop</h2>
+<p>Consider a product: $c = a \times b$, with $a = 2$, $b = 3$.</p>
+<p>I nudge $a$ a little. How much does $c$ change — how big is $c$'s move relative to $a$'s nudge? Take your time.</p>
+<details><summary><b>check the box to reveal</b></summary>
+
+Nudge $a$ by $\Delta$: $c' = (a + \Delta)b = ab + \Delta b$. So $c$ moved by $\Delta b$, and the move-per-nudge is exactly $b$. And by symmetry, nudge $b$ and the sensitivity is $a$.
+
+</details>
+
+<p>So the derivative with respect to one input <strong>is the other input's value</strong>. Which means: to compute gradients at backward time — which happens <em>later</em>, after the forward pass is long finished — the machine must have <strong>kept its inputs</strong>. Every framework calls this "saved for backward," and it is exactly why training eats so much more memory than inference.</p>
+<h2>The ghost at the door</h2>
+<p>Now scale it up. $O = PV$ is nothing but a grid of these little products, and the same law scales wholesale. The gradient recipe for a matmul — the golden rule, quoted with shapes checked (full derivation lives in my companion notes — it deserves, and will get, its own article):</p>
+<p>$$C = AB \;\;\Rightarrow\;\; dA = dC\, B^\top, \qquad dB = A^\top dC \qquad \text{(transpose positioned so the shapes close)}$$</p>
+<p>Apply it: $dV = P^\top\, dO$.</p>
+<p>But hold on a second. <strong>do you have P with you?</strong></p>
+<p>What is P's shape? $N \times N$. So — clear no-go, you can't store it; storing it resurrects the exact quadratic crime this whole article exists to kill. But can you compute $dV$ <em>without</em> P? No way — the recipe demands it. So you want to compute something, you have not stored its ingredients, and you are <em>not permitted</em> to store them.</p>
+<p>All you CAN do is compute. Recompute. Recompute... N times — nobody is denying you that. <strong>memory is the premium; compute is not.</strong> so what do you do?</p>
+<p>Correct: <strong>you recompute.</strong> simple as that. What is P anyway? Softmax of the score tiles. Do you have the raw scores stored? No — but you DO have $Q$ and $K$, pristine in HBM. Re-mint the tile: one cheap matmul, $S_{\text{tile}} = Q_{\text{tile}} K_{\text{tile}}^\top$. And the shift and the denominator? You kept them: the final queen $m_i$ and the final room total $r_i$ — <strong>two scalars per row, $2N$ numbers total</strong> ($N$ maxes plus $N$ sums). At GPT-2 scale that's 2,048 numbers kept, versus the 1.05 <strong>million</strong> we refused to store. Peanuts.</p>
+<p>So at backward time, any weight resurrects by its own definition:</p>
+<p>$$P_{ij} = \frac{e^{\,S_{ij} - m_i}}{r_i}$$</p>
+<p>Not an approximation — the <em>definition</em>, evaluated late. The film was never stored; it is <strong>re-shot on demand, from actors who never left the building.</strong></p>
+<p>And here is the receipt, from our own clinic row. The film ended with $m = 102$, $r = 1.5032$. Pretend you are the backward pass arriving now — re-mint the middle score ($s_2 = 100$) and resurrect its weight:</p>
+<p>$$P_2 = \frac{e^{\,100 - 102}}{1.5032} = \frac{0.1353}{1.5032} = 0.090$$</p>
+<p>Check it against the film's ground-truth weights $[0.245,\, 0.090,\, 0.665]$ — <strong>to the digit.</strong> one exponential, one division, and a burned frame walks again.</p>
+<h2>The trade, named — and the paradox closed</h2>
+<p>So name what the machine is doing: <strong>paying FLOPs to avoid bytes.</strong> deliberately redundant arithmetic — every backward tile re-minted — purchased because arithmetic is the cheap currency and HBM traffic is the dear one. And now go back to section 1's receipt, the paradox that opened this article: flash attention does 75.2 GFLOPs where standard does 66.6 — <em>more work</em> — and finishes six times faster. <strong>the extra GFLOPs are the recomputation. The missing gigabytes are the never-stored S and P.</strong> the paradox was never a paradox; it was a currency exchange, and flash attention simply knows the exchange rate.</p>
+<p>Training is memory-intensive, and memory is the premium. So:</p>
+<p><strong>RECOMPUTATION IS THE PRICE OF REFUSING TO STORE.</strong></p>
+<p>Hold it next to its twin from the forward pass — <em>repair is the price of refusal to wait</em> — and you are holding the entire soul of flash attention: the same trade, struck twice. Refuse to hold the big thing; pay in the cheap currency; keep the mathematics exact to the digit. Two laws, one machine.</p></section><section id="sec9"><h1>Receipts, confessions, and the road ahead</h1>
+<p>We have come to the end of the derivations. How about we put these ideas to the test and see them live?? That would be pretty cool!!</p>
+<p>Let's implement our algorithm in plain python — the $\langle m, r, o \rangle$ loops, literally the film wearing a for-loop. And watch two things happen: it matches standard attention <strong>to the digit</strong> (our film table is literally the test fixture)... And — honest surprise, I expected it to lose — it already runs ~10x faster even in numpy. Why? Because CPU caches are a memory hierarchy too, and tiling is rewarded at every level of the hierarchy: the tiled version never sweeps the N x N ghost through slow RAM. The GPU story is the same physics with far bigger stakes — SRAM control that numpy simply cannot express.</p>
+<p class="codelink">→ <a href="code/flash_attention_numpy.py">flash_attention_numpy.py</a> — run it: exactness PASS at the anchor and GPT-2 scale, and ~10× faster even on CPU (tier-1 numpy implementation — to be added)</p>
+
+<p>So you will ask: it matches, but where is the saving you promised? numpy cannot show you, because numpy cannot <em>see</em> the bench. We need infrastructure that gives us <em>control of the memory hierarchy</em>. ENTER TRITON — a python-embedded language where you decide what lives in SRAM. (fun fact from this article's own story: Triton's creator, Phil Tillet, is the same person who first flipped the flash attention loops — the flip we re-derived in section 6.)</p>
+<p><a class="cite" href="https://www.kaggle.com/code/adithyagiri/flashattention" target="_blank" rel="noopener">the public kaggle notebook</a> (triton kernel + benchmark — run the speedup urself; notebook file also in <a href="code/triton_flash_attention_kaggle_v3.ipynb">code/</a>)</p>
+<iframe class="widget" src="widgets/widget6-benchmark.html" loading="lazy" title="the measured benchmark — my own version of the paper's Fig. 2 — to be added"></iframe>
+
+<h2>Reading our own receipt</h2>
+<p>Everything above was measured on a Kaggle T4, $d = 64$, fp16 in and fp32 on the accumulator. Three receipts, in rising order of brutality.</p>
+<p><strong>Receipt one — it is still exactly attention.</strong> Largest disagreement with the materialise-everything version, across the whole sweep: $3.7 \times 10^{-4}$. That is fp16 rounding, not a different answer. We reordered the arithmetic and changed nothing about the result — which was the whole promise in section 1.</p>
+<p><strong>Receipt two — the courier bill, and this one is the article.</strong> At $N = 32{,}768$ the naive version needs <strong>10,261 MiB</strong> to hold its ghost. Ours needs <strong>25 MiB</strong>. That is a <strong>410×</strong> difference, and look at the shape of it: naive climbs quadratically, ours crawls up linearly — 10 MiB at $N=1024$, 25 MiB at $N=32{,}768$. This is the $N^2$ versus $N^2d^2/M$ story of section 7, showing up on a real machine, in megabytes you can read off a meter.</p>
+<p><strong>Receipt three — the wall, exactly where we said it was.</strong> At $N = 65{,}536$ the naive version does not get slower. It <em>dies</em> — the GPU refuses to allocate $S$ at all. Our kernel answers the same question in 882 ms using 49 MiB. Section 4's wall 1 is not a metaphor; it is a hardware error message.</p>
+<h3>And now the confession, because the clock is the one receipt I did not get</h3>
+<p>Wall-clock, ours versus torch: <strong>0.25× at $N=1024$, climbing to 0.88× at $N=32{,}768$.</strong> Read that honestly — our kernel is still <em>slower</em>, by about 14% at the long end. The line climbs beautifully and never quite crosses.</p>
+<p>I could have hidden this by benchmarking against a deliberately clumsy baseline. I would rather tell you what the gap actually is, because the gap is <em>interesting</em>.</p>
+<p>Two things are in it, and I measured which is which. <strong>The first is an empty GPU.</strong> With one head, our grid is $N/B_r$ programs on 40 multiprocessors — at $N=1024$ that is 16 programs on a 40-lane road. Run 12 heads instead, as a real transformer does, and the ratio at $N=1024$ jumps from 0.25× to 0.46×. But do the same at $N = 16{,}384$ and it moves by $-0.008$ — nothing. So the empty grid is a <em>small-$N$</em> story only, and it is gone by the time the sequences get long.</p>
+<p><strong>The second is simply that I am one person and cuBLAS is not.</strong> The thing we are racing is not a naive baseline in the compute sense: <code>Q @ K.T</code> is a hand-tuned assembly GEMM and <code>torch.softmax</code> is a fused kernel, both polished for a decade. When I let the autotuner pipeline our loads — <code>num_stages = 4</code>, so the courier fetches the next shelf section while the bench is still working on the current one — our kernel got <strong>2.4× faster</strong> without a single line of the algorithm changing. The algorithm was never the slow part. The <em>engineering</em> was, and that engineering is a career, not a section 9.</p>
+<p>So: the memory receipts are ours, measured, and they are the argument. The clock belongs to the library engineers, and on production kernels the paper's own Fig. 2 shows what the same idea does when those engineers get hold of it — 41.7 ms down to 7.3 ms. What you derived with a pencil is real. What you have not derived is a decade of kernel tuning, and you should not pretend otherwise.</p>
+<h2>Honesty time — the confession list</h2>
+<p>This article walked past several things ON PURPOSE, and you deserve to know what and why:</p>
+<ol>
+<li>
+<p><strong>the backward pass, fully</strong> — we derived recomputation (the soul), and I quoted the gradient formulas with shapes checked, but the complete derivation (the softmax jacobian and all four gradient flows) lives in my notes. It deserves its own article, and it will get one.</p>
+</li>
+<li>
+<p><strong>the paper's formal proofs</strong> — we <em>manufactured</em> theorem 2 with a pencil, but the paper also proves a lower bound: no exact attention algorithm can beat this asymptotically across all SRAM sizes. We counted; they proved. Worth reading in the original.</p>
+</li>
+<li>
+<p><strong>block-sparse flash attention</strong> — the paper's own approximate extension (its section 3.3). We stayed exact-only, deliberately.</p>
+</li>
+<li>
+<p><strong>causal masking and dropout</strong> — algorithm 2's extra lines. Mechanical once you own the forward pass, so I leave them as an exercise to the reader (chuckles).</p>
+</li>
+<li>
+<p><strong>flash attention 2, 3 and 4</strong> — remember the loop flip we discovered ourselves? That is literally FA-2's opening move. Next stop on this staircase.</p>
+</li>
+<li>
+<p><strong>MQA, GQA and the economics of inference</strong> — that is the KV-cache article's territory. And its coming.</p>
+</li>
+</ol>
+<h2>The staircase</h2>
+<p>This article stands on the first one — matmuls, couriers, and the roofline <a class="cite" href="../free-normalization/" target="_blank" rel="noopener">the free-normalization article</a> — and borrowed its whole vocabulary. The next flight is already visible: <strong>KV cache</strong>, then <strong>mixture of experts</strong>. Same method every time: smallest countable case, pencil first, no borrowed formulas.</p>
+<p>This was a great journey personally — highly rewarding in terms of learning. See you at the next one!!</p></section>
+<footer style="font-family:var(--mono);font-size:11px;color:var(--ink-soft);padding:20px 0">
+first_principles · derived at a bench, verified by machine · <a href="../">index</a></footer>
+</main></div></body></html>

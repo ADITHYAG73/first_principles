@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget 5 — The breakeven: where the bench stops saving you</title>
+<style>
+  .iw {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --hairline: #E4E1DA; --machine: #8A8A93;
+    --good: #2E7D4F; --bad: #B3261E;
+    --flash: #1E7A62; --flash-wash: rgba(30,122,98,.07);
+    --danger-wash: rgba(179,38,30,.06);
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); color: var(--ink); font-family: var(--serif);
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .iw h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .iw .sub { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); }
+  .iw svg { display: block; width: 100%; height: auto; }
+  .iw .axis text { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-soft); }
+  .iw .mk text { font-family: var(--mono); font-size: 11px; }
+  .iw .readout { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-top: 8px; min-height: 20px; }
+  .iw .hint { font-size: 12px; color: var(--ink-soft); margin-top: 6px; font-style: italic; }
+  @media (prefers-reduced-motion: reduce) { .iw * { transition: none !important; } }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#f3f1ec;">
+
+<figure class="iw">
+  <h3>The breakeven — where the bench stops saving you</h3>
+  <p class="sub">The ratio d²/M: flash traffic over standard's crime term, derived in §7. Below 1, the tiled machine wins; above 1, it hauls MORE than the crime it replaced. The wall sits at d = √M ≈ 316 — and every real head dimension lives far to its left. That is not luck: the multi-head split keeps d small, and the bench amortization is the reward. Hover or tap the curve to read any d.</p>
+
+  <svg id="svg" viewBox="0 0 680 340" role="img" aria-label="Curve of d squared over M against head dimension d on a log scale. The safe region below ratio one is shaded green and holds markers at d equals 64 and 128; the wall at d equals 316 is marked; d equals 3072 sits far into the losing region at ratio 94." tabindex="0"></svg>
+  <p class="readout" id="readout">hover the curve — or press ←/→</p>
+  <p class="hint">Markers, all verified against configs and vendor docs: GPT-2 heads (d = 64, ratio 0.04), Llama-class (d = 128, ratio 0.16), the Gemma family (d = 256, ratio 0.66 — flirting with the wall), the wall itself (d = √M ≈ 316), and Gemma 4's global layers (d = 512, ratio 2.6) — which crossed it in March 2026 and promptly lost FlashAttention support entirely: every FA kernel caps at head_dim 256, so those layers fall back to slower attention. The wall we derived with a pencil is roughly where the real ecosystem stops building kernels. Far right: the one-fat-head fantasy (d = 3072, ratio ≈ 94). Multi-head is FlashAttention's secret ally.</p>
+</figure>
+
+<script>
+(function(){
+  var svgNS = 'http://www.w3.org/2000/svg';
+  var svg = document.getElementById('svg');
+  var M = 100000;
+  var W = 680, H = 340, padL = 56, padR = 24, padT = 16, padB = 40;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+  var dMin = 16, dMax = 4096;
+  var rMin = 0.001, rMax = 200; // log y
+
+  var x = function(d){ return padL + (Math.log2(d) - Math.log2(dMin)) / (Math.log2(dMax) - Math.log2(dMin)) * plotW; };
+  var y = function(r){ return padT + plotH - (Math.log10(r) - Math.log10(rMin)) / (Math.log10(rMax) - Math.log10(rMin)) * plotH; };
+  var dFromPx = function(px){ return Math.round(Math.pow(2, Math.log2(dMin) + (px - padL) / plotW * (Math.log2(dMax) - Math.log2(dMin)))); };
+  var ratio = function(d){ return d*d/M; };
+
+  function el(name, attrs, parent){
+    var e = document.createElementNS(svgNS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+
+  // region washes
+  el('rect', { x: padL, y: y(1), width: plotW, height: padT + plotH - y(1), fill: 'var(--flash-wash)' });
+  el('rect', { x: padL, y: padT, width: plotW, height: y(1) - padT, fill: 'var(--danger-wash)' });
+  el('text', { x: padL + 8, y: y(1) + 18, 'font-family': 'var(--mono)', 'font-size': 10.5, fill: 'var(--good)' }).textContent = 'flash wins  (ratio < 1)';
+  el('text', { x: padL + 8, y: padT + 16, 'font-family': 'var(--mono)', 'font-size': 10.5, fill: 'var(--bad)' }).textContent = 'flash loses  (ratio > 1)';
+
+  // axes
+  var axes = el('g', { class: 'axis' });
+  el('line', { x1: padL, y1: padT + plotH, x2: padL + plotW, y2: padT + plotH, stroke: 'var(--hairline)' }, axes);
+  el('line', { x1: padL, y1: padT, x2: padL, y2: padT + plotH, stroke: 'var(--hairline)' }, axes);
+  [16, 32, 64, 128, 256, 512, 1024, 2048, 4096].forEach(function(d){
+    el('line', { x1: x(d), y1: padT + plotH, x2: x(d), y2: padT + plotH + 4, stroke: 'var(--hairline)' }, axes);
+    el('text', { x: x(d), y: padT + plotH + 16, 'text-anchor': 'middle' }, axes).textContent = d;
+  });
+  el('text', { x: padL + plotW/2, y: H - 6, 'text-anchor': 'middle' }, axes).textContent = 'd — head dimension (log scale)';
+  var ylab = el('text', { x: 16, y: padT + plotH/2, 'text-anchor': 'middle',
+    transform: 'rotate(-90 16 ' + (padT + plotH/2) + ')' }, axes);
+  ylab.textContent = 'ratio d²/M  (log)';
+  [0.001, 0.01, 0.1, 1, 10, 100].forEach(function(r){
+    el('line', { x1: padL - 4, y1: y(r), x2: padL, y2: y(r), stroke: 'var(--hairline)' }, axes);
+    el('text', { x: padL - 8, y: y(r) + 3.5, 'text-anchor': 'end' }, axes).textContent = r;
+  });
+
+  // breakeven line at ratio 1
+  el('line', { x1: padL, y1: y(1), x2: padL + plotW, y2: y(1), stroke: 'var(--machine)', 'stroke-width': 1.4, 'stroke-dasharray': '7 5' });
+
+  // curve
+  var dpath = '';
+  for (var k = 0; k <= 200; k++){
+    var d = Math.pow(2, Math.log2(dMin) + k/200 * (Math.log2(dMax) - Math.log2(dMin)));
+    dpath += (k ? 'L' : 'M') + x(d).toFixed(1) + ' ' + y(ratio(d)).toFixed(1);
+  }
+  el('path', { d: dpath, fill: 'none', stroke: 'var(--flash)', 'stroke-width': 2.2 });
+
+  // markers
+  var marks = [
+    { d: 64,   lab: 'GPT-2 head — 0.04', dy: -10 },
+    { d: 128,  lab: 'Llama-class — 0.16', dy: -10 },
+    { d: 256,  lab: 'Gemma — 0.66', dy: -12 },
+    { d: 316,  lab: 'the wall — √M', dy: 16 },
+    { d: 512,  lab: 'Gemma 4 global — 2.6', dy: -12 },
+    { d: 3072, lab: 'one fat head — 94', dy: 16 }
+  ];
+  marks.forEach(function(m){
+    var g = el('g', { class: 'mk' });
+    el('circle', { cx: x(m.d), cy: y(ratio(m.d)), r: 4, fill: 'var(--paper)', stroke: 'var(--ink)', 'stroke-width': 1.4 }, g);
+    var anchor = m.d > 1500 ? 'end' : 'start';
+    el('text', { x: x(m.d) + (m.d > 1500 ? -8 : 8), y: y(ratio(m.d)) + m.dy, 'text-anchor': anchor, fill: 'var(--ink)' }, g).textContent = m.lab;
+  });
+
+  // crosshair
+  var cross = el('g', { visibility: 'hidden' });
+  var vline = el('line', { y1: padT, y2: padT + plotH, stroke: 'var(--ink)', 'stroke-width': .8, opacity: .35 }, cross);
+  var dot = el('circle', { r: 4, fill: 'var(--flash)' }, cross);
+  var curD = null;
+
+  function show(d){
+    d = Math.max(dMin, Math.min(dMax, d));
+    curD = d;
+    var r = ratio(d);
+    cross.setAttribute('visibility', 'visible');
+    vline.setAttribute('x1', x(d)); vline.setAttribute('x2', x(d));
+    dot.setAttribute('cx', x(d)); dot.setAttribute('cy', y(r));
+    var verdict = r < 1
+      ? 'flash hauls ' + (r*100).toFixed(1) + '% of the crime term — wins ' + (1/r).toFixed(1) + '×'
+      : 'flash hauls ' + r.toFixed(1) + '× the crime term — loses';
+    document.getElementById('readout').textContent = 'd = ' + d + '   ratio d²/M = ' + (r < 0.01 ? r.toFixed(4) : r.toFixed(2)) + '   → ' + verdict;
+  }
+  svg.addEventListener('mousemove', function(e){
+    var rect = svg.getBoundingClientRect();
+    var px = (e.clientX - rect.left) * (W / rect.width);
+    if (px < padL || px > padL + plotW) return;
+    show(dFromPx(px));
+  });
+  svg.addEventListener('mouseleave', function(){
+    cross.setAttribute('visibility', 'hidden');
+    document.getElementById('readout').textContent = 'hover the curve — or press ←/→';
+    curD = null;
+  });
+  svg.addEventListener('keydown', function(e){
+    if (curD === null){ show(64); return; }
+    if (e.key === 'ArrowRight'){ show(Math.round(curD * 1.12) + 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft'){ show(Math.max(dMin, Math.round(curD / 1.12) - 1)); e.preventDefault(); }
+  });
+})();
+</script>
+</body>
+</html>
