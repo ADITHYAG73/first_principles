@@ -109,5 +109,19 @@
   update();
 })();
 </script>
+<script>
+/* report our height to the article so the iframe never scrolls internally */
+(function(){
+  function post(){
+    var h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    parent.postMessage({type:'widget-height', height:h}, '*');
+  }
+  window.addEventListener('load', post);
+  window.addEventListener('resize', post);
+  if (window.ResizeObserver) new ResizeObserver(post).observe(document.body);
+  document.addEventListener('click', function(){ setTimeout(post, 60); });
+  setTimeout(post, 120);
+})();
+</script>
 </body>
 </html>

@@ -97,57 +97,172 @@ TITLES = {  # sidebar labels
   "sec7": "the theorem & the wall", "sec8": "the backward pass", "sec9": "receipts & confessions",
 }
 
-sections, nav = [], []
+sections = []
 for i in range(1, 10):
     name = f"sec{i}"
     md = (MDS / f"{name}.md").read_text()
     md = patch(md, name)
     md, store = shield(md)
-    html = markdown.markdown(md, extensions=["tables", "fenced_code"])
+    # "toc" gives every heading an id, which the client-side contents list needs
+    html = markdown.markdown(md, extensions=["tables", "fenced_code", "toc"])
     html = unshield(html, store)
-    sections.append(f'<section id="{name}">{html}</section>')
-    nav.append(f'<a href="#{name}">{i}. {TITLES[name]}</a>')
+    sections.append(f'<section id="{name}" data-title="{i}. {TITLES[name]}">{html}</section>')
+
+# per-widget heights: a single fixed height leaves dead space under short widgets
+# and makes tall ones scroll inside themselves, trapping the reader's wheel.
+# these are fallbacks only — each widget reports its true height via postMessage.
+WIDGET_H = {
+  "two_ledgers_widget": 560, "online_softmax_film_player": 720,
+  "the_bench_rent_widget": 700, "the_itinerary_comic": 760,
+  "the_breakeven_widget": 620, "widget6-benchmark": 470,
+}
+body = "".join(sections)
+for stem, h in WIDGET_H.items():
+    body = body.replace(f'src="widgets/{stem}.html" loading="lazy"',
+                        f'src="widgets/{stem}.html" style="height:{h}px" loading="lazy"')
 
 page = f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>flash attention, from first principles</title>
+<title>Flash Attention, From First Principles</title>
+<meta name="description" content="Why attention runs out of memory before it runs out of maths — online softmax derived by hand, then the tiled kernel that never writes the N×N matrix down.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
  onload="renderMathInElement(document.body,{{delimiters:[{{left:'$$',right:'$$',display:true}},{{left:'$',right:'$',display:false}}]}});"></script>
 <style>
- :root{{--paper:#FDFCF9;--ink:#1A1A1E;--ink-soft:#5A5A63;--hairline:#E4E1DA;
-  --serif:Charter,Georgia,'Times New Roman',serif;--mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace}}
- *{{box-sizing:border-box}}
- body{{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);line-height:1.65}}
- .wrap{{display:flex;max-width:1080px;margin:0 auto}}
- nav{{position:sticky;top:0;align-self:flex-start;width:230px;padding:28px 18px;font-family:var(--mono);
-  font-size:12px;border-right:1px solid var(--hairline);height:100vh;overflow-y:auto}}
- nav a{{display:block;color:var(--ink-soft);text-decoration:none;padding:5px 0}}
- nav a:hover{{color:var(--ink)}}
- main{{flex:1;padding:34px 40px;max-width:780px;min-width:0}}
- h1{{font-size:26px;line-height:1.25}} h2{{font-size:19px;margin-top:2em}} h3{{font-size:16px}}
- table{{border-collapse:collapse;font-size:14px;margin:1em 0;display:block;overflow-x:auto}}
- th,td{{border:0.5px solid var(--hairline);padding:6px 10px;text-align:left}}
- th{{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);font-weight:400}}
- blockquote{{border-left:3px solid var(--hairline);margin:1.2em 0;padding:2px 16px;background:#fff;border-radius:0 4px 4px 0}}
- code{{font-family:var(--mono);font-size:.9em;background:#f1efe9;padding:1px 5px;border-radius:3px}}
- details{{border:1px solid var(--hairline);border-radius:5px;padding:10px 14px;margin:1em 0;background:#fff}}
- summary{{cursor:pointer;font-family:var(--mono);font-size:13px}}
- iframe.widget{{width:100%;height:640px;border:none;margin:1.2em 0;border-radius:6px;background:#f3f1ec}}
- a{{color:#1E5AA8}} a.cite{{font-size:.88em}}
- .katex-display{{overflow-x:auto;overflow-y:hidden;padding:4px 0}}
- section{{margin-bottom:3.2em;border-bottom:1px solid var(--hairline);padding-bottom:1.4em}}
- @media(max-width:860px){{nav{{display:none}}main{{padding:22px 18px}}}}
-</style></head><body>
-<div class="wrap">
-<nav><strong style="color:var(--ink)">flash attention</strong><br><br>{''.join(nav)}
-<br><a href="../">← all articles</a></nav>
-<main>
-{''.join(sections)}
-<footer style="font-family:var(--mono);font-size:11px;color:var(--ink-soft);padding:20px 0">
-first_principles · derived at a bench, verified by machine · <a href="../">index</a></footer>
-</main></div></body></html>"""
+  :root {{
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63; --machine: #8A8A93;
+    --matmul: #2B5BA8; --norm: #C4552D; --hairline: #E4E1DA;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  }}
+  * {{ box-sizing: border-box; }}
+  html {{ background: #F3F1EC; }}
+  body {{ margin: 0; font-family: var(--serif); color: var(--ink); line-height: 1.62; font-size: 17px; }}
+  .sheet {{ max-width: 760px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--hairline);
+    border-right: 1px solid var(--hairline); padding: 48px 40px 80px; }}
+  @media (max-width: 820px) {{ .sheet {{ padding: 32px 18px 60px; border: none; }} body {{ font-size: 16px; }} }}
+  h1 {{ font-size: 34px; line-height: 1.2; margin: 0 0 4px; letter-spacing: -.01em; }}
+  section h1 {{ font-size: 26px; margin: 0 0 12px; }}
+  section:first-of-type h1 {{ font-size: 34px; }}
+  h2 {{ font-size: 24px; margin: 48px 0 12px; letter-spacing: -.005em; }}
+  h3 {{ font-size: 18.5px; margin: 32px 0 8px; }}
+  p {{ margin: 0 0 16px; }}
+  hr {{ border: none; border-top: 1px solid var(--hairline); margin: 40px 0; }}
+  a {{ color: var(--matmul); text-decoration: none; border-bottom: 1px solid rgba(43,91,168,.3); }}
+  a:hover {{ border-bottom-color: var(--matmul); }}
+  a.cite {{ font-size: .88em; }}
+  code {{ font-family: var(--mono); font-size: .85em; background: #F2F0EA; padding: 1px 5px; border-radius: 3px; }}
+  blockquote {{ margin: 0 0 18px; padding: 10px 16px; border-left: 3px solid var(--norm); background: #fff;
+    border-radius: 0 4px 4px 0; color: var(--ink-soft); }}
+  blockquote p:last-child {{ margin-bottom: 0; }}
+  table {{ border-collapse: collapse; width: 100%; font-size: 15px; margin: 0 0 16px; display: block; overflow-x: auto; }}
+  th, td {{ text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--hairline); vertical-align: top; }}
+  th {{ font-family: var(--mono); font-size: 12.5px; font-weight: 500; color: var(--ink-soft); }}
+  details {{ border: 1px solid var(--hairline); border-left: 3px solid var(--norm); border-radius: 4px;
+    background: #fff; padding: 10px 16px; margin: 0 0 18px; }}
+  details summary {{ cursor: pointer; font-size: 13.5px; color: var(--norm); font-style: italic; list-style: none; }}
+  details summary::before {{ content: '\25B8\00a0'; }}
+  details[open] summary::before {{ content: '\25BE\00a0'; }}
+  details[open] summary {{ margin-bottom: 8px; }}
+  .katex-display {{ overflow-x: auto; overflow-y: hidden; padding: 4px 0 10px;
+    scrollbar-width: thin; scrollbar-color: var(--machine) transparent; }}
+  .katex-display::-webkit-scrollbar {{ height: 7px; }}
+  .katex-display::-webkit-scrollbar-track {{ background: #F2F0EA; border-radius: 4px; }}
+  .katex-display::-webkit-scrollbar-thumb {{ background: var(--machine); border-radius: 4px; }}
+  iframe.widget {{ width: 100%; border: none; display: block; margin: 26px -20px; width: calc(100% + 40px); }}
+  @media (max-width: 820px) {{ iframe.widget {{ margin: 22px -8px; width: calc(100% + 16px); }} }}
+  section {{ margin-bottom: 8px; }}
+  section + section {{ border-top: 1px solid var(--hairline); padding-top: 34px; margin-top: 34px; }}
+  .codelink {{ font-family: var(--mono); font-size: 13.5px; }}
+  .colophon {{ font-style: italic; color: var(--ink-soft); font-size: 15.5px; }}
+  footer {{ font-size: 13.5px; color: var(--ink-soft); line-height: 1.7; }}
+  .layout {{ display: flex; justify-content: center; align-items: flex-start; }}
+  nav.toc {{ display: none; }}
+  @media (min-width: 1160px) {{
+    nav.toc {{ display: block; position: sticky; top: 32px; width: 210px; flex: 0 0 210px;
+      margin-right: 28px; padding: 24px 0 24px 16px; max-height: calc(100vh - 64px);
+      overflow-y: auto; font-size: 12.5px; line-height: 1.5; }}
+    nav.toc .toc-title {{ font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }}
+    nav.toc a {{ display: block; color: var(--ink-soft); border: none; padding: 3px 0 3px 10px;
+      border-left: 2px solid transparent; }}
+    nav.toc a.h3 {{ padding-left: 22px; font-size: 11.5px; }}
+    nav.toc a:hover {{ color: var(--ink); }}
+    nav.toc a.active {{ color: var(--matmul); border-left-color: var(--matmul); }}
+    nav.toc .home {{ margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--hairline);
+      font-family: var(--mono); font-size: 11px; }}
+  }}
+  @media (prefers-reduced-motion: reduce) {{ * {{ animation: none !important; transition: none !important; }} }}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" aria-label="Contents"><div class="toc-title">Contents</div><div id="tocitems"></div>
+<div class="home"><a href="../">← all articles</a></div></nav>
+<div class="sheet">
+{body}
+<hr />
+<p class="colophon">Written by Adithya Giridharan, with Claude as tutor and editor. Every derivation in this
+article was worked by hand before it was written, and every number was measured before it was claimed.</p>
+<hr />
+<footer>
+<p>FlashAttention is the work of Dao et al., reported in
+<a href="https://arxiv.org/abs/2205.14135">the original paper</a>. This article is the staircase, not the
+building. Found an error? Good — that means you were counting. Reach me on
+<a href="https://x.com/AG_1698">X</a> or <a href="https://github.com/ADITHYAG73">GitHub</a>.</p>
+</footer>
+</div>
+</div>
+<script>
+// contents list, built from the sections and their h2s, with an active marker that
+// follows the reader. same behaviour as article one.
+(function() {{
+  var box = document.getElementById('tocitems');
+  if (!box) return;
+  var links = {{}}, targets = [];
+  Array.prototype.forEach.call(document.querySelectorAll('.sheet section[id]'), function(sec) {{
+    var a = document.createElement('a');
+    a.href = '#' + sec.id;
+    a.textContent = sec.getAttribute('data-title') || sec.id;
+    box.appendChild(a); links[sec.id] = a; targets.push(sec);
+    Array.prototype.forEach.call(sec.querySelectorAll('h2[id]'), function(h) {{
+      var b = document.createElement('a');
+      b.href = '#' + h.id; b.textContent = h.textContent; b.className = 'h3';
+      box.appendChild(b); links[h.id] = b; targets.push(h);
+    }});
+  }});
+  var current = null;
+  function setActive(id) {{
+    if (current === id) return;
+    if (current && links[current]) links[current].classList.remove('active');
+    if (links[id]) links[id].classList.add('active');
+    current = id;
+  }}
+  var obs = new IntersectionObserver(function(entries) {{
+    entries.forEach(function(e) {{ if (e.isIntersecting) setActive(e.target.id); }});
+  }}, {{ rootMargin: '0px 0px -70% 0px' }});
+  targets.forEach(function(t) {{ obs.observe(t); }});
+}})();
+
+// widgets report their own height, so no iframe is taller than its contents.
+// this removes the dead space under short widgets and stops tall ones from
+// scrolling internally and swallowing the reader's wheel.
+window.addEventListener('message', function(e) {{
+  if (!e.data || e.data.type !== 'widget-height' || !isFinite(e.data.height)) return;
+  var frames = document.querySelectorAll('iframe.widget');
+  for (var i = 0; i < frames.length; i++) {{
+    if (frames[i].contentWindow === e.source) {{
+      frames[i].style.height = Math.ceil(e.data.height) + 'px';
+      return;
+    }}
+  }}
+}});
+</script>
+</body>
+</html>"""
 OUT.write_text(page)
 print(f"built {OUT} ({len(page):,} bytes), {len(sections)} sections")
