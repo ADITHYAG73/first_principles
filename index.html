@@ -3,10 +3,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Towards First Principles — Adithya Giridharan</title>
 <meta name="description" content="Technical explainers derived from the smallest countable case — pencil first, no borrowed formulas. By Adithya Giridharan.">
+<meta name="color-scheme" content="light dark">
+<script>
+ /* set the theme before first paint, so a dark-mode reader never gets a white flash */
+ (function(){try{var t=localStorage.getItem('theme');
+   if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
 <style>
+ /* light is the base palette. dark redefines only the tokens, so every rule below
+    is written once and both themes stay in step. */
  :root{--paper:#FDFCF9;--ink:#1A1A1E;--ink-soft:#5A5A63;--ink-faint:#8A8A93;--hairline:#E4E1DA;
   --link:#1E5AA8;--accent:#1E7A62;
   --serif:Charter,Georgia,'Times New Roman',serif;--mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace}
+ @media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--paper:#17171B;--ink:#E8E6E1;--ink-soft:#A8A6A0;--ink-faint:#908E86;
+   --hairline:#2E2E35;--link:#7FB0EE;--accent:#5FC9A8}
+ }
+ :root[data-theme="dark"]{--paper:#17171B;--ink:#E8E6E1;--ink-soft:#A8A6A0;--ink-faint:#908E86;
+  --hairline:#2E2E35;--link:#7FB0EE;--accent:#5FC9A8}
+ html{background:var(--paper)}
  *{box-sizing:border-box}
  html{-webkit-text-size-adjust:100%}
  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);line-height:1.65}
@@ -23,6 +38,12 @@
  nav a:hover,nav a:focus-visible{color:var(--ink)}
  nav a.on{color:var(--accent)}
  nav .foot{margin-top:28px;padding-top:14px;border-top:1px solid var(--hairline);font-size:11px}
+ /* mono hairline button, same family as the widgets */
+ #theme{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:4px 9px;
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);background:transparent;
+  border:1px solid var(--hairline);border-radius:4px;cursor:pointer;letter-spacing:.02em}
+ #theme:hover{color:var(--ink);border-color:var(--ink-faint)}
+ #theme:focus-visible{outline:2px solid var(--link);outline-offset:2px}
  main{flex:1;min-width:0;padding:38px 40px 64px;max-width:780px}
  /* ---- masthead ---- */
  .masthead{padding-bottom:26px;margin-bottom:10px;border-bottom:1px solid var(--hairline)}
@@ -72,7 +93,8 @@
   <a class="on" href="#technical-articles">Technical Articles</a>
 
   <div class="foot">
-    <a href="https://github.com/ADITHYAG73" target="_blank" rel="noopener">GitHub ↗</a>
+    <a href="https://github.com/ADITHYAG73" target="_blank" rel="noopener">GitHub ↗</a><br>
+    <button id="theme" type="button" aria-live="polite"><span id="themeIcon">●</span><span id="themeLabel">dark</span></button>
   </div>
 </nav>
 
@@ -109,4 +131,35 @@
 </main>
 
 </div>
+<script>
+(function(){
+  var root = document.documentElement,
+      btn = document.getElementById('theme'),
+      icon = document.getElementById('themeIcon'),
+      label = document.getElementById('themeLabel'),
+      sys = window.matchMedia('(prefers-color-scheme: dark)');
+
+  // with no explicit choice stored, follow the operating system
+  function current(){
+    var set = root.getAttribute('data-theme');
+    return set ? set : (sys.matches ? 'dark' : 'light');
+  }
+  // the button always advertises what it will switch you TO
+  function paint(){
+    var next = current() === 'dark' ? 'light' : 'dark';
+    icon.textContent = next === 'dark' ? '\u25CF' : '\u25CB';
+    label.textContent = next;
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' mode');
+  }
+  btn.addEventListener('click', function(){
+    var next = current() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch(e){}
+    paint();
+  });
+  // keep following the system until the reader overrides it
+  sys.addEventListener('change', function(){ if(!root.getAttribute('data-theme')) paint(); });
+  paint();
+})();
+</script>
 </body></html>
