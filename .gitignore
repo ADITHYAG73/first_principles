@@ -1,1 +1,4 @@
 .DS_Store
+
+# skill bundle is a build artifact of methodology/SKILL.md — keep the markdown, not the zip
+methodology/*.skill
