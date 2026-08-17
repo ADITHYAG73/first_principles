@@ -8,7 +8,7 @@ Consider a product: $c = a \times b$, with $a = 2$, $b = 3$.
 
 I nudge $a$ a little. How much does $c$ change — how big is $c$'s move relative to $a$'s nudge? Take your time.
 
-<details><summary><b>check the box to reveal</b></summary>
+<details markdown="1"><summary><b>check the box to reveal</b></summary>
 
 Nudge $a$ by $\Delta$: $c' = (a + \Delta)b = ab + \Delta b$. So $c$ moved by $\Delta b$, and the move-per-nudge is exactly $b$. And by symmetry, nudge $b$ and the sensitivity is $a$.
 

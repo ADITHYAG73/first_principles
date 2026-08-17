@@ -104,7 +104,7 @@ for i in range(1, 10):
     md = patch(md, name)
     md, store = shield(md)
     # "toc" gives every heading an id, which the client-side contents list needs
-    html = markdown.markdown(md, extensions=["tables", "fenced_code", "toc"])
+    html = markdown.markdown(md, extensions=["tables", "fenced_code", "toc", "md_in_html"])
     html = unshield(html, store)
     sections.append(f'<section id="{name}" data-title="{i}. {TITLES[name]}">{html}</section>')
 
@@ -165,8 +165,8 @@ page = f"""<!DOCTYPE html>
   details {{ border: 1px solid var(--hairline); border-left: 3px solid var(--norm); border-radius: 4px;
     background: #fff; padding: 10px 16px; margin: 0 0 18px; }}
   details summary {{ cursor: pointer; font-size: 13.5px; color: var(--norm); font-style: italic; list-style: none; }}
-  details summary::before {{ content: '\25B8\00a0'; }}
-  details[open] summary::before {{ content: '\25BE\00a0'; }}
+  details summary::before {{ content: '\\25B8\\00a0'; }}
+  details[open] summary::before {{ content: '\\25BE\\00a0'; }}
   details[open] summary {{ margin-bottom: 8px; }}
   .katex-display {{ overflow-x: auto; overflow-y: hidden; padding: 4px 0 10px;
     scrollbar-width: thin; scrollbar-color: var(--machine) transparent; }}
@@ -230,6 +230,9 @@ building. Found an error? Good — that means you were counting. Reach me on
     a.textContent = sec.getAttribute('data-title') || sec.id;
     box.appendChild(a); links[sec.id] = a; targets.push(sec);
     Array.prototype.forEach.call(sec.querySelectorAll('h2[id]'), function(h) {{
+      // headings inside a reveal box are structure for that box, not the article:
+      // linking to them would scroll the reader to something still collapsed.
+      if (h.closest('details')) return;
       var b = document.createElement('a');
       b.href = '#' + h.id; b.textContent = h.textContent; b.className = 'h3';
       box.appendChild(b); links[h.id] = b; targets.push(h);

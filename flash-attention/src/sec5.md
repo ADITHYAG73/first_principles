@@ -8,7 +8,7 @@ $$s = [\,101,\; 100,\; 102\,]$$
 
 (Look familiar? It should — this is row 1 of our anchor, $[1, 0, 2]$, shifted up by 100. Shift invariance says the two rows have identical softmax. Keep that in your back pocket.)
 
-You will be given this vector one element at a time, and your goal is — of course — to compute its softmax (what did you guys expect?). But here is the thing: this is a game, and games have rules:
+You will be given this vector one element at a time, and your goal is — of course — to compute its softmax (what did you guys expect? 😄). But here is the thing: this is a game, and games have rules:
 
 1. **each number arrives once.** whatever you want to do with it, do it while its in your hands — you will never see her again!!
 2. **you may keep a small notebook** — a few running scalars of your choosing, updated as you go. But never the raw elements themselves; no stockpiling the vector in disguise. (derived quantities of the number *currently in your hands* are fair game — you just can't warehouse it.)
@@ -16,9 +16,9 @@ You will be given this vector one element at a time, and your goal is — of cou
 
 And the stakes, so you know this is not a puzzle-page filler: **if a winning notebook exists, the whole-row requirement dissolves, chunking becomes legal, and the quadratic ghost dies.** the entire article hangs on this game being winnable.
 
-One hint before you begin: on a per-row basis the bottleneck is never COMPUTE — you have unlimited freedom to compute, or *recompute* rather (well, that's a giveaway in itself.. But its fine). So: 101 arrives, and you will never see it again — what do you do? Then 100 arrives — what changes? Then 102 — and why is 102 special? Or is it special at all?
+One hint before you begin: on a per-row basis the bottleneck is never COMPUTE — you have unlimited freedom to compute, or *recompute* rather (well, that's a giveaway in itself.. But its fine). So: 101 arrives, and you will never see her again — what do you do? Then 100 arrives — what changes? Then 102 — and why is 102 special? Or is it special at all?
 
-<details><summary><b>open the box below to find the answers to all</b></summary>
+<details markdown="1"><summary><b>open the box below to find the answers to all</b></summary>
 
 When you receive 101, the first thing most of you thought: exponentiate it and store the value. Fair enough, good start — but the machine refuses. You can't compute $e^{101}$, let alone store it (sec 2's fire, remember). Ok, the rescue we learned: subtract the max, 102, first. **but hang on — you have not seen 102 yet.** at this moment all you have is 101, and you must make do with it. Is the game unplayable? Definitely not. Watch.
 
@@ -75,7 +75,7 @@ Recall the game's rule 1 — and realise it applies to $V$'s rows too. One rule 
 
 So what is the blend's repair factor? Here is the derivation, and it is three lines:
 
-<details><summary><b>open the box: the blend's repair factor</b></summary>
+<details markdown="1"><summary><b>open the box: the blend's repair factor</b></summary>
 
 Take any one citizen $j$ already inside the blend. Its provisional weight (old regime) and its correct weight (new regime):
 

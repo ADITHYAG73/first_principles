@@ -87,7 +87,7 @@ Every shifted score ≤ 0, every exponential ≤ 1. Fireproof forever. But hang 
 
 DON'T BELIEVE ME? Three layers of conviction, escalating:
 
-<details><summary><b>open the box: proof, witness, miracle</b></summary>
+<details markdown="1"><summary><b>open the box: proof, witness, miracle</b></summary>
 
 **the proof (three lines, fully general).** shift every score by any constant $c$:
 
@@ -111,7 +111,9 @@ Identical, to the digit. The proof isn't lying.
 
 Apply the (max-shifted) softmax to every row of our $S$:
 
-$$P = \begin{bmatrix} 0.245 & 0.090 & 0.665 \\ 0.468 & 0.468 & 0.063 \\ 0.422 & 0.155 & 0.422 \end{bmatrix} \qquad \text{(every row ≥ 0, every row sums to 1 — verify!)}$$
+$$P = \begin{bmatrix} 0.245 & 0.090 & 0.665 \\ 0.468 & 0.468 & 0.063 \\ 0.422 & 0.155 & 0.422 \end{bmatrix}$$
+
+(every row $\ge 0$, every row sums to 1 — verify!)
 
 And pour: row $i$ of $O$ is token $i$'s blend of the value rows, mixed by its own proportions:
 
