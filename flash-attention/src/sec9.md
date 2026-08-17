@@ -2,7 +2,7 @@
 
 We have come to the end of the derivations. How about we put these ideas to the test and see them live?? That would be pretty cool!!
 
-Let's implement our algorithm in plain python — the $\langle m, r, o \rangle$ loops, literally the film wearing a for-loop. And watch two things happen: it matches standard attention **to the digit** (our film table is literally the test fixture)... And — honest surprise, I expected it to lose — it already runs ~10x faster even in numpy. Why? Because CPU caches are a memory hierarchy too, and tiling is rewarded at every level of the hierarchy: the tiled version never sweeps the N x N ghost through slow RAM. The GPU story is the same physics with far bigger stakes — SRAM control that numpy simply cannot express.
+Let's implement our algorithm in plain python — the $\langle m, r, o \rangle$ loops, literally the film wearing a for-loop. And watch two things happen: it matches standard attention **to the digit** (our film table is literally the test fixture)... And — honest surprise, I expected it to lose — it already comes out *ahead* even in numpy, somewhere between 1.0x and 1.6x depending on the run (it is a noisy measurement on a CPU with other things going on; run it a few times and watch it wobble). Why? Because CPU caches are a memory hierarchy too, and tiling is rewarded at every level of the hierarchy: the tiled version never sweeps the N x N ghost through slow RAM. The GPU story is the same physics with far bigger stakes — SRAM control that numpy simply cannot express.
 
 <code: tier-1 numpy implementation — to be added>
 
