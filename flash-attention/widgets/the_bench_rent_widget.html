@@ -86,7 +86,7 @@
         <text x="440" y="55" fill="var(--ink)">← only these small blocks</text>
         <text x="440" y="72" fill="var(--ink)">ever visit the bench:</text>
         <text x="440" y="92">B&#x1D63; = 64 asker rows of Q, O</text>
-        <text x="440" y="109">B&#x1D9C; = 390 shelf rows of K, V</text>
+        <text x="440" y="109">B&#x1D9C; = 391 shelf rows of K, V</text>
         <text x="440" y="126">one B&#x1D63; × B&#x1D9C; tile of S</text>
       </g>
     </svg>
@@ -121,19 +121,19 @@
     </div>
     <div class="controls">
       <label for="br">B&#x1D63; (askers)</label>
-      <input type="range" id="br" min="64" max="390" step="1" value="64">
+      <input type="range" id="br" min="64" max="391" step="1" value="64">
       <span class="brval" id="brval">64</span>
       <button id="tame">tame it (B&#x1D63; = d)</button>
       <button id="explode">show the explosion</button>
       <button id="back">← full world</button>
     </div>
-    <p class="constants">fixed: d = 64 &nbsp; B&#x1D9C; = 390 &nbsp; N = 1024 &nbsp; M = 100,000 numbers &nbsp; (A100-class bench)</p>
+    <p class="constants">fixed: d = 64 &nbsp; B&#x1D9C; = 391 &nbsp; N = 1024 &nbsp; M = 100,000 numbers &nbsp; (A100-class bench)</p>
   </div>
 </figure>
 
 <script>
 (function(){
-  var M = 100000, d = 64, Bc = 390, N = 1024;
+  var M = 100000, d = 64, Bc = 391, N = 1024;
   var $ = function(id){ return document.getElementById(id); };
   var nf = function(x){ return x.toLocaleString('en-US'); };
   var SVGNS = 'http://www.w3.org/2000/svg';
@@ -232,7 +232,7 @@
     $('br').value = d; $('brval').textContent = d; update(d);
   });
   $('explode').addEventListener('click', function(){
-    var slider = $('br'), target = 390, start = +slider.value;
+    var slider = $('br'), target = 391, start = +slider.value;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches){
       slider.value = target; $('brval').textContent = target; update(target); return;
     }

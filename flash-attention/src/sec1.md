@@ -13,4 +13,4 @@ Don't take my word for it. Here is the receipt, straight from the paper's own me
 
 Read that again. Flash attention does MORE arithmetic — and finishes almost six times faster, moving nine times less data. How on earth?
 
-Here is my promise: by the end of this article, you will not have *read* the answer — you will have **derived the first two of those numbers yourself**, with a pencil, starting from a 3×2 matrix. The work and the data movement are both yours to count. The third number, the clock, you will *not* derive — and the reason why is one of the more interesting things in here. You will earn that one by measuring it. Let's go.
+Here is my promise: by the end of this article, you will not have *read* the answer — you will have **derived the machine that produces the first two of those numbers**, with a pencil, starting from a 3×2 matrix: why the work goes *up*, why the data movement collapses, and how far each one moves. The work and the data movement are both yours to count. The third number, the clock, you will *not* derive — and the reason why is one of the more interesting things in here. You will earn that one by measuring it. Let's go.

@@ -24,8 +24,8 @@ Hola!! We got the cost down. Who is the saviour? Of course — its $M$. We could
 
 At GPT-2 scale ($N = 1024$, $d = 64$, $M = 100{,}000$), set the bills side by side — and be honest about the ladder:
 
-- commute term alone vs the crime term: **~26× less traffic**
-- add the shelf haul and the honest constants: **~15×**
+- counting only flash's commute, against standard's whole bill: **~26× less traffic**
+- counting flash's shelf haul too, with the honest constants: **~15×**
 - the paper's *measured* number on real silicon: **9×** <cite: Fig. 2>
 
 26 → 15 → 9: each step toward reality adds overhead — and the ordering itself is the lesson. Our pencil count brackets the measurement from above, exactly as a first-principles count should.
@@ -47,7 +47,7 @@ That's the wall. Now walk the real world along the curve:
 - **GPT-2 heads**, $d = 64$: ratio 0.04 — flash hauls 4% of the crime it replaced
 - **Llama-class heads**, $d = 128$: ratio 0.16 — still a thumping win
 - **the Gemma family**, $d = 256$: ratio 0.66 — flirting with the wall <cite: HF config, Google architecture blog>
-- **Gemma 4's global layers**, $d = 512$: ratio 2.6 — **crossed the wall in march 2026, and promptly lost flash attention entirely.** every FA kernel caps at head_dim 256; those layers fall back to slower attention <cite: Dao-AILab issue, HF discussions>. The wall we derived with a pencil is roughly where the real ecosystem stops building kernels.
+- **Gemma 4's global layers**, $d = 512$: ratio 2.6 — **crossed the wall, and promptly lost flash attention entirely.** every FA kernel caps at head_dim 256; those layers fall back to slower attention <cite: Dao-AILab issue, HF discussions>. The wall we derived with a pencil is roughly where the real ecosystem stops building kernels.
 - and the one-fat-head fantasy, $d = 3072$: ratio ≈ 94 — flash would haul ninety-four crimes' worth. Nobody builds this. Now you know why.
 
 <widget: the breakeven curve — hover any d>

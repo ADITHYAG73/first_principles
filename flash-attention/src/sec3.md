@@ -21,7 +21,7 @@ Total movement bill:
 
 $$T_{\text{std}} = 4Nd + 4N^2$$
 
-<cite: this is the paper's Theorem — standard attention requires ❤22❤ HBM accesses; pin exact section at citation pass>
+<cite: this is the paper's Theorem — standard attention requires $\Theta(Nd + N^2)$ HBM accesses; pin exact section at citation pass>
 
 Now — how much of this is IRREDUCIBLE? The inputs must come in ($Q + K + V = 3Nd$) and the answer must go out ($O = Nd$). So $4Nd$ is the fundamental cost of the operation, non-negotiable.
 

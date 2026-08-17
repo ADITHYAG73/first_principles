@@ -18,6 +18,8 @@ CITES = {
   "gemma-hf": ("https://huggingface.co/docs/transformers/en/model_doc/gemma2", "HF Gemma config"),
   "dao-issue": ("https://github.com/Dao-AILab/flash-attention/issues", "Dao-AILab/flash-attention issues"),
   "fa-repo": ("https://github.com/Dao-AILab/flash-attention", "Dao-AILab/flash-attention"),
+  "fa-headdim": ("https://github.com/Dao-AILab/flash-attention/issues/2427", "flash-attention issue #2427 — head_dim=512 for Gemma 4 global layers"),
+  "gemma4-hf": ("https://huggingface.co/google/gemma-4-31B-it/discussions/30", "HF: FlashAttention supports head dimension at most 256"),
   "kaggle": ("https://www.kaggle.com/code/adithyagiri/flashattention", "the public kaggle notebook"),
 }
 def cite(key, text=None):
@@ -48,7 +50,7 @@ def patch(md, name):
       "<cite: HF config, Google architecture blog>": f'({cite("gemma-hf")}; {cite("gemma")})',
       "<cite: repo support matrix>": f'({cite("fa-repo","the repo\u2019s own support matrix")})',
       "<cite: FA-2 abstract>": f'({cite("fa2","FlashAttention-2, abstract")})',
-      "<cite: Dao-AILab issue, HF discussions>": f'({cite("dao-issue")})',
+      "<cite: Dao-AILab issue, HF discussions>": f'({cite("fa-headdim")}; {cite("gemma4-hf")})',
     }
     for k, v in r.items(): md = md.replace(k, v)
     # widget slots -> iframes

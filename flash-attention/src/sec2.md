@@ -2,6 +2,8 @@
 
 $$O = \mathrm{softmax}(QK^\top)\,V$$
 
+> **notebox — the missing $1/\sqrt{d}$.** you may have met this formula as $\mathrm{softmax}(QK^\top/\sqrt{d})\,V$ — scores divided by $\sqrt{d}$ before the softmax, so that dot products of long vectors don't grow large enough to push softmax into its flat corners. I drop that factor everywhere in this article, deliberately. It is a fixed rescaling applied *before* the softmax, so it changes none of the counting, none of the two walls, and none of the repair algebra we are about to derive — it would only add a symbol to every line. It does matter in practice, and the companion code applies it: you will find `1/sqrt(d)` in both implementations.
+
 I know some of you may be thinking: we have been seeing this equation forever, what do you offer new? My answer — nothing new, technically speaking. But what I promise is that by the end of this article you would have internalised it in an intuitive fashion, derived every piece of it with your own hands. That's the dimension I really care about. It's a promise, and I believe I can deliver.
 
 Let's go to the smallest case we can comfortably hold in our heads. (I was tempted to go square, but am deliberately staying rectangular — later sections live in rectangular block sizes $B_r$, $B_c$, and I don't want the two side-lengths masquerading as each other. Square cases we reserve for simplifying upper-bound calculations, and we will say so when we do.)
@@ -29,7 +31,7 @@ Now, I ask you to compute $O$. The journey has three stops.
 
 $$S = QK^\top = \begin{bmatrix} 1 & 0 & 2 \\ 2 & 2 & 0 \\ 2 & 1 & 2 \end{bmatrix}$$
 
-Note $S$ is **square**, unlike its inputs — and think about what it means. Its rows are the tokens of $N$... And its columns? You are right — also the tokens of $N$. Entry $S_{ij}$ is the dot product of token $i$'s query row with token $j$'s key row: token $i$ *asking*, token $j$ *being asked*. $S$ is the full questionnaire — every token interrogating every token.
+Note $S$ is **square**, unlike its inputs — and think about what it means. Its rows are the $N$ tokens... And its columns? You are right — also the $N$ tokens. Entry $S_{ij}$ is the dot product of token $i$'s query row with token $j$'s key row: token $i$ *asking*, token $j$ *being asked*. $S$ is the full questionnaire — every token interrogating every token.
 
 And pay close attention: $S_{12} = 0$ but $S_{21} = 2$. They **need not** be the same. The importance of token 2 *to* token 1 is a different question from the importance of token 1 *to* token 2 — relevance in language is directional ("sat" urgently needs "cat"; "cat" barely needs "sat").
 

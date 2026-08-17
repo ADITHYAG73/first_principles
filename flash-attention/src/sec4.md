@@ -4,7 +4,7 @@ The dream is obvious, so let's state it: **fuse the three kernels into one.** co
 
 ## Wall 1 — the bench is too small
 
-Say the bench holds $M = 100{,}000$ numbers (an A100-class budget). Now look at the size of $S$. At GPT-2 scale, $N = 1024$, so $S$ has $N^2 \approx 1.05$ **million** entries — roughly *ten times the entire bench*, before $Q$, $K$, $V$, $P$, $O$ ask for their seats. The biggest object in the pipeline cannot visit the workshop whole. So clearly you can't fit $S$ in — forget computing softmax on it and multiplying by $V$.
+Say the bench holds $M = 100{,}000$ numbers (an A100-class budget — roughly one compute unit's SRAM in half precision; treat it as an order-of-magnitude figure, not a datasheet number). Now look at the size of $S$. At GPT-2 scale, $N = 1024$, so $S$ has $N^2 \approx 1.05$ **million** entries — roughly *ten times the entire bench*, before $Q$, $K$, $V$, $P$, $O$ ask for their seats. The biggest object in the pipeline cannot visit the workshop whole. So clearly you can't fit $S$ in — forget computing softmax on it and multiplying by $V$.
 
 Fine — so we chunk. Store only a piece of $S$ at a time. And here wall 2 rises.
 
