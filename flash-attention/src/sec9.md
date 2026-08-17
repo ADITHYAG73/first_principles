@@ -46,7 +46,7 @@ This article walked past several things ON PURPOSE, and you deserve to know what
 
 3. **block-sparse flash attention** — the paper's own approximate extension (its section 3.3). We stayed exact-only, deliberately.
 
-4. **causal masking and dropout** — algorithm 2's extra lines. Mechanical once you own the forward pass, so I leave them as an exercise to the reader (chuckles).
+4. **causal masking and dropout** — algorithm 2's extra lines. Mechanical once you own the forward pass, so I leave them as an exercise to the reader 😄
 
 5. **flash attention 2, 3 and 4** — remember the loop flip we discovered ourselves? That is literally FA-2's opening move. Next stop on this staircase.
 

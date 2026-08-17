@@ -65,8 +65,13 @@
   s+='<text x="'+(pl+pw/2)+'" y="'+(H-6)+'" text-anchor="middle">N — sequence length (log)</text>';
   s+='<text x="14" y="'+(pt+ph/2)+'" text-anchor="middle" transform="rotate(-90 14 '+(pt+ph/2)+')">ms per forward (log)</text>';
   s+=path(1,'var(--naive)')+path(2,'var(--flash)');
-  s+='<text x="'+(pl+8)+'" y="'+(pt+14)+'" fill="var(--naive)">naive (S, P materialised)</text>';
-  s+='<text x="'+(pl+8)+'" y="'+(pt+30)+'" fill="var(--flash)">flash (triton kernel)</text>';
+  function legend(y,col,label){
+    return '<line x1="'+(pl+8)+'" y1="'+(y-4)+'" x2="'+(pl+30)+'" y2="'+(y-4)+'" stroke="'+col+'" stroke-width="2"/>'
+      + '<circle cx="'+(pl+19)+'" cy="'+(y-4)+'" r="3.5" fill="'+col+'"/>'
+      + '<text x="'+(pl+38)+'" y="'+y+'" style="fill:'+col+'">'+label+'</text>';
+  }
+  s+=legend(pt+14,'var(--naive)','naive (S, P materialised)');
+  s+=legend(pt+30,'var(--flash)','flash (triton kernel)');
   // the wall: first N where naive could not allocate S. flash keeps answering past it.
   var wall=null;
   DATA.forEach(function(r){if(wall===null&&r[1]==null)wall=r[0]});
