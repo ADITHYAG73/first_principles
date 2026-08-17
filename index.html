@@ -1,10 +1,112 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>first principles — Adithya's blog</title>
-<style>body{font-family:Charter,Georgia,serif;background:#FDFCF9;color:#1A1A1E;max-width:680px;margin:0 auto;padding:60px 24px;line-height:1.6}a{color:#2B5BA8}</style></head>
-<body><h1>first principles</h1>
-<p><a href="free-normalization/">Towards Free Normalization, From First Principles</a><br>
-<small>A gentle on-ramp to the PyTorch "free normalization" work — derived from counting a 2×2 matrix upward, with six interactive figures.</small></p>
-<p><a href="flash-attention/">FlashAttention, From First Principles</a><br>
-<small>Why attention runs out of memory before it runs out of maths — online softmax derived by hand, then the tiled kernel that never writes the N×N matrix down. Seven interactive figures, with runnable numpy and Triton implementations.</small></p>
+<title>Towards First Principles — Adithya Giridharan</title>
+<meta name="description" content="Technical explainers derived from the smallest countable case — pencil first, no borrowed formulas. By Adithya Giridharan.">
+<style>
+ :root{--paper:#FDFCF9;--ink:#1A1A1E;--ink-soft:#5A5A63;--ink-faint:#8A8A93;--hairline:#E4E1DA;
+  --link:#1E5AA8;--accent:#1E7A62;
+  --serif:Charter,Georgia,'Times New Roman',serif;--mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace}
+ *{box-sizing:border-box}
+ html{-webkit-text-size-adjust:100%}
+ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);line-height:1.65}
+ .wrap{display:flex;max-width:1080px;margin:0 auto;gap:0}
+ /* ---- sidebar: section index. adding a section here is one <a>. ---- */
+ nav{position:sticky;top:0;align-self:flex-start;width:230px;flex:none;padding:38px 18px;
+  font-family:var(--mono);font-size:12px;border-right:1px solid var(--hairline);
+  height:100vh;overflow-y:auto}
+ nav .mark{display:block;color:var(--ink);font-weight:600;line-height:1.35;letter-spacing:-0.01em}
+ nav .mark small{display:block;font-weight:400;color:var(--ink-faint);margin-top:4px;font-size:11px;letter-spacing:0}
+ nav .lbl{display:block;margin:26px 0 6px;color:var(--ink-faint);font-size:10px;
+  text-transform:uppercase;letter-spacing:.08em}
+ nav a{display:block;color:var(--ink-soft);text-decoration:none;padding:5px 0}
+ nav a:hover,nav a:focus-visible{color:var(--ink)}
+ nav a.on{color:var(--accent)}
+ nav .foot{margin-top:28px;padding-top:14px;border-top:1px solid var(--hairline);font-size:11px}
+ main{flex:1;min-width:0;padding:38px 40px 64px;max-width:780px}
+ /* ---- masthead ---- */
+ .masthead{padding-bottom:26px;margin-bottom:10px;border-bottom:1px solid var(--hairline)}
+ h1{font-size:38px;line-height:1.12;margin:0;letter-spacing:-0.02em}
+ .byline{font-family:var(--mono);font-size:13px;color:var(--ink-soft);margin:14px 0 0;letter-spacing:.01em}
+ .blurb{font-size:16.5px;color:var(--ink-soft);margin:18px 0 0;max-width:62ch}
+ /* ---- sections + entries ---- */
+ section{margin-top:42px}
+ h2{font-family:var(--mono);font-size:11px;font-weight:400;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--ink-faint);margin:0 0 4px}
+ .entry{padding:22px 0;border-bottom:1px solid var(--hairline)}
+ .entry:last-child{border-bottom:none}
+ .entry h3{margin:0;font-size:20px;line-height:1.3;font-weight:600;letter-spacing:-0.01em}
+ .entry h3 a{color:var(--link);text-decoration:none}
+ .entry h3 a:hover,.entry h3 a:focus-visible{text-decoration:underline}
+ .entry p{margin:8px 0 0;color:var(--ink-soft);font-size:16px;max-width:64ch}
+ .meta{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-top:10px;
+  display:flex;flex-wrap:wrap;gap:6px 10px}
+ .meta span::after{content:"·";margin-left:10px;color:var(--hairline)}
+ .meta span:last-child::after{content:""}
+ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--hairline);
+  font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+ footer a{color:var(--ink-soft);text-decoration:none}
+ footer a:hover{color:var(--ink)}
+ /* ---- narrow: sidebar becomes a masthead strip ---- */
+ @media(max-width:860px){
+  .wrap{display:block}
+  nav{position:static;width:auto;height:auto;border-right:none;
+   border-bottom:1px solid var(--hairline);padding:20px 18px;display:flex;
+   flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+  nav .mark{flex:1 0 100%}
+  nav .lbl{display:none}
+  nav .foot{margin:0;padding:0;border-top:none}
+  main{padding:26px 18px 48px;max-width:none}
+  h1{font-size:30px}
+ }
+ @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head>
+<body>
+<div class="wrap">
+
+<nav>
+  <a class="mark" href="./">Towards First Principles<small>Adithya Giridharan</small></a>
+
+  <span class="lbl">Sections</span>
+  <!-- add future sections here: applied AI projects, commentaries, … -->
+  <a class="on" href="#technical-articles">Technical Articles</a>
+
+  <div class="foot">
+    <a href="https://github.com/ADITHYAG73" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</nav>
+
+<main>
+  <header class="masthead">
+    <h1>Towards First Principles</h1>
+    <p class="byline">Adithya Giridharan</p>
+    <p class="blurb">Technical explainers built the long way round: start at the smallest case you can
+    hold in your head, count it upward with a pencil, and only then go and check whether the machine
+    agrees. Every number here is measured, and every figure is one you can poke at.</p>
+  </header>
+
+  <section id="technical-articles">
+    <h2>Technical Articles</h2>
+
+    <div class="entry">
+      <h3><a href="flash-attention/">FlashAttention, From First Principles</a></h3>
+      <p>Why attention runs out of memory before it runs out of maths. Online softmax derived by hand
+      from a 3×2 matrix, then the tiled kernel that never writes the N×N matrix down — ending in a
+      measured benchmark, including the receipt I did not get.</p>
+      <div class="meta"><span>17 Aug 2026</span><span>7 interactive figures</span><span>numpy + Triton</span></div>
+    </div>
+
+    <div class="entry">
+      <h3><a href="free-normalization/">Towards Free Normalization, From First Principles</a></h3>
+      <p>A gentle on-ramp to the PyTorch “free normalization” work — derived from counting a 2×2
+      matrix upward, arriving at the roofline and the memory hierarchy that every article since has
+      borrowed its vocabulary from.</p>
+      <div class="meta"><span>28 Jul 2026</span><span>6 interactive figures</span></div>
+    </div>
+  </section>
+
+  <footer>Built in the open · <a href="https://github.com/ADITHYAG73/first_principles" target="_blank" rel="noopener">source on GitHub ↗</a></footer>
+</main>
+
+</div>
 </body></html>
