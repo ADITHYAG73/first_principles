@@ -34,6 +34,8 @@ Two things are in it, and I measured which is which. **The first is an empty GPU
 
 So: the memory receipts are ours, measured, and they are the argument. The clock belongs to the library engineers, and on production kernels the paper's own Fig. 2 shows what the same idea does when those engineers get hold of it — 41.7 ms down to 7.3 ms. What you derived with a pencil is real. What you have not derived is a decade of kernel tuning, and you should not pretend otherwise.
 
+And one last honesty note, this one about me rather than about the kernel. **This is the first GPU kernel I have ever written.** So everything in this section is the *measurement* talking, not experience. I can tell you what the gap is and I can isolate what sits inside it, because those are things you can measure. I cannot yet tell you how to close it — that means tensor-core fragment layouts, shared-memory bank conflicts, instruction scheduling, and a dozen things I would only be paraphrasing at you right now. That is a dedicated sprint, not a subsection at the end of somebody else's article. When I have actually done it with my own hands, it gets its own piece. Until then I would rather hand you a measured 0.88× and name the thing I don't know than perform an expertise I haven't earned.
+
 ## Honesty time — the confession list
 
 This article walked past several things ON PURPOSE, and you deserve to know what and why:
@@ -49,6 +51,8 @@ This article walked past several things ON PURPOSE, and you deserve to know what
 5. **flash attention 2, 3 and 4** — remember the loop flip we discovered ourselves? That is literally FA-2's opening move. Next stop on this staircase.
 
 6. **MQA, GQA and the economics of inference** — that is the KV-cache article's territory. And its coming.
+
+7. **kernel engineering, the whole discipline** — the reason our clock lost. I deliberately did not teach it here, because I have not done it. Worth knowing how deep it goes: the official FlashAttention repo does not support Turing GPUs like the T4 at all — Ampere, Ada and Hopper only <cite: repo support matrix> — so on the very card this article was measured on, the reference implementation declines to run. And FlashAttention-2 exists *because* FA-1 reached "only 25-40% of the theoretical maximum FLOPs/s"; FA-2 got to "50-73%", roughly a 2x gain, which its abstract attributes to "suboptimal work partitioning between different thread blocks and warps on the GPU, causing either low-occupancy or unnecessary shared memory reads/writes" <cite: FA-2 abstract>. Low occupancy and shared-memory waste — the same two things our control run found. The man who invented the algorithm needed a second paper to make it fast. That is the honest measure of the distance between deriving this and shipping it.
 
 ## The staircase
 

@@ -17,6 +17,7 @@ CITES = {
   "gemma": ("https://developers.googleblog.com/en/gemma-explained-overview-gemma-model-family-architectures/", "Google — Gemma architecture"),
   "gemma-hf": ("https://huggingface.co/docs/transformers/en/model_doc/gemma2", "HF Gemma config"),
   "dao-issue": ("https://github.com/Dao-AILab/flash-attention/issues", "Dao-AILab/flash-attention issues"),
+  "fa-repo": ("https://github.com/Dao-AILab/flash-attention", "Dao-AILab/flash-attention"),
   "kaggle": ("https://www.kaggle.com/code/adithyagiri/flashattention", "the public kaggle notebook"),
 }
 def cite(key, text=None):
@@ -45,6 +46,8 @@ def patch(md, name):
       "<cite: exact statement at citation pass>": f'({cite("fa1","Theorem 2")})',
       "<cite: Fig. 2>": f'({cite("fa1","Fig. 2")})',
       "<cite: HF config, Google architecture blog>": f'({cite("gemma-hf")}; {cite("gemma")})',
+      "<cite: repo support matrix>": f'({cite("fa-repo","the repo\u2019s own support matrix")})',
+      "<cite: FA-2 abstract>": f'({cite("fa2","FlashAttention-2, abstract")})',
       "<cite: Dao-AILab issue, HF discussions>": f'({cite("dao-issue")})',
     }
     for k, v in r.items(): md = md.replace(k, v)
