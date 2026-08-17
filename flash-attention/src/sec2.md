@@ -99,7 +99,9 @@ The $e^c$ cancels top and bottom — for ANY shift, ANY vector, computable or no
 
 **the witness (both sides computable — check me).** take $[1, 2, 3]$ vs its shifted twin $[-2, -1, 0]$:
 
-$$[1,2,3]: \frac{[e^1, e^2, e^3]}{e^1+e^2+e^3} = [\,0.090,\; 0.245,\; 0.665\,] \qquad [-2,-1,0]: \frac{[e^{-2}, e^{-1}, e^0]}{e^{-2}+e^{-1}+1} = [\,0.090,\; 0.245,\; 0.665\,]$$
+$$[1,2,3]\,: \quad \frac{[\,e^1,\; e^2,\; e^3\,]}{e^1+e^2+e^3} = [\,0.090,\; 0.245,\; 0.665\,]$$
+
+$$[-2,-1,0]\,: \quad \frac{[\,e^{-2},\; e^{-1},\; e^{0}\,]}{e^{-2}+e^{-1}+e^{0}} = [\,0.090,\; 0.245,\; 0.665\,]$$
 
 Identical, to the digit. The proof isn't lying.
 

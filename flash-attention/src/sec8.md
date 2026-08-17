@@ -20,7 +20,9 @@ So the derivative with respect to one input **is the other input's value**. Whic
 
 Now scale it up. $O = PV$ is nothing but a grid of these little products, and the same law scales wholesale. The gradient recipe for a matmul — the golden rule, quoted with shapes checked (full derivation lives in my companion notes — it deserves, and will get, its own article):
 
-$$C = AB \;\;\Rightarrow\;\; dA = dC\, B^\top, \qquad dB = A^\top dC \qquad \text{(transpose positioned so the shapes close)}$$
+$$C = AB \;\;\Longrightarrow\;\; dA = dC\, B^\top \qquad\qquad dB = A^\top dC$$
+
+(the transposes are positioned so the shapes close — that is the whole mnemonic)
 
 Apply it: $dV = P^\top\, dO$.
 

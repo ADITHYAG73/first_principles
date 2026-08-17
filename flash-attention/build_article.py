@@ -175,6 +175,10 @@ page = f"""<!DOCTYPE html>
   .katex-display::-webkit-scrollbar {{ height: 7px; }}
   .katex-display::-webkit-scrollbar-track {{ background: #F2F0EA; border-radius: 4px; }}
   .katex-display::-webkit-scrollbar-thumb {{ background: var(--machine); border-radius: 4px; }}
+  /* a wide equation scrolls, but macOS hides the scrollbar until you touch it, so a
+     clipped line reads as a wrong calculation. mark the ones that actually overflow. */
+  .scrollhint {{ font-family: var(--mono); font-size: 10px; color: var(--norm); text-align: right;
+    margin: -6px 0 12px; letter-spacing: .02em; }}
   iframe.widget {{ width: 100%; border: none; display: block; margin: 26px -20px; width: calc(100% + 40px); }}
   @media (max-width: 820px) {{ iframe.widget {{ margin: 22px -8px; width: calc(100% + 16px); }} }}
   section {{ margin-bottom: 8px; }}
@@ -251,6 +255,29 @@ building. Found an error? Good — that means you were counting. Reach me on
     entries.forEach(function(e) {{ if (e.isIntersecting) setActive(e.target.id); }});
   }}, {{ rootMargin: '0px 0px -70% 0px' }});
   targets.forEach(function(t) {{ obs.observe(t); }});
+}})();
+
+// flag display maths that is genuinely wider than the column, so a reader never
+// mistakes a clipped equation for a wrong one. runs after KaTeX has laid out.
+(function() {{
+  function mark() {{
+    Array.prototype.forEach.call(document.querySelectorAll('.katex-display'), function(el) {{
+      var over = el.scrollWidth - el.clientWidth > 2;
+      var hint = el.nextElementSibling;
+      var has = hint && hint.className === 'scrollhint';
+      if (over && !has) {{
+        var d = document.createElement('div');
+        d.className = 'scrollhint';
+        d.textContent = 'scroll this line \u2192';
+        el.parentNode.insertBefore(d, el.nextSibling);
+      }} else if (!over && has) {{
+        hint.parentNode.removeChild(hint);
+      }}
+    }});
+  }}
+  window.addEventListener('load', function() {{ setTimeout(mark, 300); }});
+  window.addEventListener('resize', mark);
+  document.addEventListener('toggle', function() {{ setTimeout(mark, 50); }}, true);
 }})();
 
 // widgets report their own height, so no iframe is taller than its contents.
