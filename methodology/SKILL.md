@@ -37,6 +37,11 @@ creep in, expect him to strike them in review — plain structural language wins
 Do not skip ahead. Do not batch what should be stepped. He will sometimes ask "what do I write now" —
 always have the next concrete deliverable ready, sized to one sitting.
 
+**Ordering amendment (article 2):** phases 5–6 may be inverted — widgets before prose — but ONLY
+when the register is already frozen (notation, metaphors, numbers all signed). The reason widgets
+normally come last is rebuild risk when prose changes vocabulary; a frozen register removes that
+risk. When widgets go first, prose is then drafted *pointing at* built widgets (Distill-style).
+
 ## Tutoring protocol (phase 1 — this is where the article is secretly born)
 
 - **Start at the smallest countable case.** A 2×2 matrix, one vector, eight friends. He computes
@@ -59,6 +64,19 @@ always have the next concrete deliverable ready, sized to one sitting.
   as an article requirement, not just a chat clarification. His confusions are curriculum debugging.
 - Watch for **self-doubt about his own correct findings** ("anything I feel I found myself I doubt").
   Respond with verification procedure, not reassurance: check it three independent ways, then move on.
+- **Hold-the-question amendment (his explicit request, article 2):** no posed question dissolves
+  until he has answered it explicitly — right, wrong, or half-formed. If his own question arrives
+  while one of Claude's is open, answer his, then re-post the open question verbatim.
+- **Q&A format he prefers:** Claude poses, he answers — including multiple-choice options when the
+  ground is new. Compute-this / choose-one / meaning-check triads work well.
+- **Metaphors stick to wounds:** place an image or metaphor immediately AFTER the stall it cures,
+  never before. (The jacket rule for transposes landed only because the shape-gate had just
+  punished him; twelve years of the memorized identity never did.) Applies to article placement too.
+- **The consolidation gate:** a topic is not "done" until he can say it back in his own words
+  unprompted. A section may not be drafted — nor its widget built — while its content fails the
+  say-it-back test. When a mid-tutoring explanation crashed (jargon deluge), the residue shows up
+  days later as "not registered in my natural neural network"; the cure is a receipts-based
+  re-derivation from his own signed pages, not re-explanation.
 
 ## The verification covenant (applies to everything, forever)
 
@@ -126,6 +144,14 @@ The closing section always contains: a two-column jargon-translation table (our 
 term, each pointing to the section that earned it), an honest scope confession with a link onward,
 and prominent credits ("this article is the staircase, not the building").
 
+**Rendering hazard (hit twice):** long inline chains of math-plus-text (e.g. a checkmarked pipeline
+map in one line) overflow horizontally with no scroll rescue. Stack such chains as lists; keep
+display math short. Applies to chat messages during tutoring AND to the built article.
+
+**Legitimate scope cut, named:** "quoted with shapes verified + derived-at-the-smallest-case in
+companion notes" is a valid depth for heavy derivations (article 2's backward pass). Stronger than
+quoting alone, cheaper than full in-article derivation; the notebox flags the follow-up honestly.
+
 ## Cold read (phase 5)
 
 He reviews with inline document comments. Treat each comment as a verdict: fix, log, or defend —
@@ -147,6 +173,23 @@ teach instead of crash; a "receipt"/ledger-style readout is the house signature.
 at a time, present it, incorporate his verdicts (he gives sharp ones — e.g. removed default
 behaviors, demanded self-deriving labels) before the next. He supplies animation ideas mid-drafting;
 log them as build-specs in the register.
+
+**One visual family, per-article accents (ruled article 2):** the tokens above are the shared
+skeleton — paper, ink, hairline, serif/mono, 720px figure frame, h3+.sub header, mono hairline
+buttons, aria-live/focus-visible/reduced-motion. Every article's widgets inherit it. On top, each
+article adds its own SEMANTIC palette encoding its concepts (article 2: teal/purple regime colors
+for the citizenship law, fire-red for overflow). Article-1 choices are conventions to evolve, not
+law to freeze — genuine improvements upgrade the family going forward.
+
+**Storyboard gate:** before any build, freeze a storyboard — stage, the ONE takeaway sentence,
+controls (each must earn its seat), and the drama beat. Claude proposes, he vetoes (he often has
+no design preference; that flips the roles to propose-and-veto). Cheap disagreements happen here,
+not mid-build.
+
+**Sketch vs production:** in-chat rendered widgets are disposable teaching sketches / storyboard
+prototypes — they are NOT saved anywhere. Production widgets are standalone HTML files built in
+the workbench, machine-verified (the widget's update math must reproduce the register's ground-truth
+numbers to the digit), presented for download, committed by him to `<article>/widgets/` in the repo.
 
 ## Assembly & launch (phases 7–8)
 
