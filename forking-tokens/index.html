@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Forking-Tokens Experiment with Qwen3.5-9B</title>
+<meta name="description" content="A replication of forking-paths analysis on a 2026 open model. On a question Qwen is confident about, no token swap changes the answer. On a question it is torn about, six do.">
+<meta property="og:title" content="A Forking-Tokens Experiment with Qwen3.5-9B">
+<meta property="og:description" content="Single tokens flipped GPT-3.5's answers in 2024. Do they still flip a 2026 model's? Two questions, 365 branches, 18,250 continuations — and a cheap screen that predicts which questions fork.">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary">
+<meta name="author" content="Adithya Giridharan">
+<style>
+  :root {
+    --paper: #FDFCF9; --ink: #1A1A1E; --ink-soft: #5A5A63;
+    --matmul: #2B5BA8; --norm: #C4552D; --hairline: #E4E1DA;
+    --serif: Charter, Georgia, 'Times New Roman', serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  html { background: #F3F1EC; }
+  body { margin: 0; font-family: var(--serif); color: var(--ink); line-height: 1.62; font-size: 17px; }
+  .sheet { max-width: 760px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--hairline);
+    border-right: 1px solid var(--hairline); padding: 48px 40px 80px; }
+  @media (max-width: 820px) { .sheet { padding: 32px 18px 60px; border: none; } body { font-size: 16px; } }
+  h1 { font-size: 34px; line-height: 1.2; margin: 0 0 4px; letter-spacing: -.01em; }
+  h3.tagline { font-weight: 400; font-style: italic; color: var(--ink-soft); font-size: 17px; margin: 0 0 6px; }
+  .byline { font-size: 13.5px; color: var(--ink-soft); border-bottom: 1px solid var(--hairline);
+    padding-bottom: 18px; margin-bottom: 34px; }
+  h2 { font-size: 24px; margin: 48px 0 12px; letter-spacing: -.005em; }
+  h3 { font-size: 18.5px; margin: 32px 0 8px; }
+  p { margin: 0 0 16px; }
+  hr { border: none; border-top: 1px solid var(--hairline); margin: 40px 0; }
+  a { color: var(--matmul); text-decoration: none; border-bottom: 1px solid rgba(43,91,168,.3); }
+  a:hover { border-bottom-color: var(--matmul); }
+  a.cite { font-size: .88em; }
+  code { font-family: var(--mono); font-size: .85em; background: #F2F0EA; padding: 1px 5px; border-radius: 3px; }
+  blockquote { margin: 0 0 16px; padding: 8px 18px; border-left: 3px solid var(--hairline); color: var(--ink-soft); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 0 0 16px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 12.5px; font-weight: 500; color: var(--ink-soft); }
+  /* the question cards: a quoted benchmark item, set apart from my own prose */
+  .qcard { border: 1px solid var(--hairline); border-left: 3px solid var(--matmul); border-radius: 4px;
+    background: #fff; padding: 14px 18px; margin: 0 0 18px; }
+  .qcard .tag { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 8px; }
+  .qcard .opts { font-family: var(--mono); font-size: 13.5px; line-height: 1.8; margin: 12px 0 0;
+    overflow-x: auto; white-space: pre; }
+  /* figures are measurements, so they get a caption that says what was measured */
+  figure { margin: 26px 0 22px; }
+  figure img { width: 100%; height: auto; display: block; border: 1px solid var(--hairline); border-radius: 4px;
+    background: #fff; }
+  figcaption { font-size: 13.5px; color: var(--ink-soft); margin-top: 10px; line-height: 1.5; }
+  .layout { display: flex; justify-content: center; align-items: flex-start; }
+  nav.toc { display: none; }
+  @media (min-width: 1160px) {
+    nav.toc { display: block; position: sticky; top: 32px; width: 210px; flex: 0 0 210px;
+      margin-right: 28px; padding: 24px 0 24px 16px; max-height: calc(100vh - 64px);
+      overflow-y: auto; font-size: 12.5px; line-height: 1.5; }
+    nav.toc .toc-title { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
+    nav.toc a { display: block; color: var(--ink-soft); border: none; padding: 3px 0 3px 10px;
+      border-left: 2px solid transparent; }
+    nav.toc a:hover { color: var(--ink); }
+    nav.toc a.active { color: var(--matmul); border-left-color: var(--matmul); }
+    nav.toc .home { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--hairline);
+      font-size: 11.5px; }
+  }
+  .aiuse { font-size: 14px; color: var(--ink-soft); border-top: 1px solid var(--hairline);
+    margin-top: 48px; padding-top: 18px; }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" aria-label="Contents"><div class="toc-title">Contents</div><div id="tocitems"></div>
+<div class="home"><a href="../">← all articles</a></div></nav>
+<div class="sheet">
+
+<section id="sec1" data-title="the result">
+<h1 id="a-forking-tokens-experiment-with-qwen3-5-9b">A Forking-Tokens Experiment with Qwen3.5-9B</h1>
+<h3 class="tagline">A short research note, not an explainer — one replication, two questions, and every number measured.</h3>
+<p class="byline">Adithya Giridharan · 22 Sep 2026</p>
+
+<p>I replicated a forking experiment on one of the recent open models, Qwen3.5-9B. In the
+experiment, I found that on a question the model is confident about, no token swap changes the
+final outcome. But on a question it was torn about, six alternate tokens did change the final
+outcome.</p>
+</section>
+
+<section id="sec2" data-title="what was open">
+<h2 id="what-the-papers-claimed-and-what-was-open">What the papers claimed and what was open</h2>
+
+<p>The 2024 forking paper by
+<a class="cite" href="https://arxiv.org/abs/2412.07961" target="_blank" rel="noopener">Bigelow et al.</a>
+found that single tokens flip the answer on a GPT-3.5 model. The follow-up paper in
+<a class="cite" href="https://arxiv.org/abs/2608.19611" target="_blank" rel="noopener">2026</a>,
+which was released recently, showed that much of the jaggedness at low sample counts was noise,
+on a Llama-3-8B model. I was curious to replicate the study on one of the fairly recent models,
+and that was my motivation to do this. Also, neither of the papers asked which questions fork.
+And I had to ask this because I was primarily bottlenecked by compute.</p>
+</section>
+
+<section id="sec3" data-title="the two questions">
+<h2 id="the-two-questions">The two questions</h2>
+
+<p>Both are from the tinyMMLU test set (100 questions).</p>
+
+<div class="qcard">
+  <div class="tag">Row 80 · formal logic · correct answer B</div>
+  <p>Select the best translation into predicate logic. Some firefighters rescue victims from
+  danger. (Dx: x is danger; Fx: x is a firefighter; Vx: x is a victim; Rxyz: x rescues y from z)</p>
+  <div class="opts">A) (∃x){Fx • (∀y)[Dy ⊃ (∃z)(Vz • Rxyz)]}
+B) (∃x){Fx • (∃y)[Vy • (∃z)(Dz • Rxyz)]}
+C) (∃x){Fx • (∃y)(∃z)[(Vy • Dz) • Rxzy]}
+D) (∀x){Fx ⊃ (∃y)[Vy . (∃z)(Dz • Rxyz)]}</div>
+</div>
+
+<div class="qcard">
+  <div class="tag">Row 41 · moral scenarios · correct answer A</div>
+  <p>For which of these two scenarios does the main character (who uses I/me/my) do something
+  clearly morally wrong, according to ordinary moral standards in the US as of 2020?
+  Scenario 1 | I knew my overweight teacher was dieting, so I offered her a big sundae.
+  Scenario 2 | I found a wallet in the park and became its new owner.</p>
+  <div class="opts">A) Wrong, Wrong
+B) Wrong, Not wrong
+C) Not wrong, Wrong
+D) Not wrong, Not wrong</div>
+</div>
+</section>
+
+<section id="sec4" data-title="what I did">
+<h2 id="what-i-did">What I did</h2>
+
+<p>I chose a fairly recent model for the experiment, Qwen3.5-9B. The reason was simple: I was
+curious to know if the forking still replicated in newer models. My thought process was that the
+newer models, open or closed, should have fairly aced the benchmark datasets by now.</p>
+
+<p>I started with row 80 of tinyMMLU. In the Llama data the 2026 authors released, row 80, upon
+analysis, had one of the clearest forks: a round bracket against a square bracket changed the
+answer from C to A. When I tested this question with Qwen3.5-9B it gave the right answer, and it
+turned out that the Qwen model did not fork for that question. Although I had predicted that
+newer models should not fork and probably answer correctly, I was still a little disappointed
+with the negative result. I was interested to see the branching for real, and the negative result
+couldn't help me with what I was looking for.</p>
+
+<p>So then I came up with a fairly simple experiment. Since I was bottlenecked by compute, I had
+to choose questions where the model was uncertain or wrong. Even if it is wrong, if it is always
+wrong it is not going to help. Only if it is dicey, split between two or three options, could it
+prove fruitful for the forking experiment. It turns out that in tinyMMLU the model got 14
+questions wrong, and on 17 questions it was torn: it gave different answers at different times. I
+sampled 10 times, and in those it was split between different final outcomes.</p>
+
+<p>Once I had screened potential candidate questions, I narrowed down to one question. I recorded
+its greedy answer once and sampled it 10 times at the zeroth position, and it split across two
+final verdicts, option A and option C, five times each. With that in mind, I used a stride length
+of 4 and swept across the generation: at every fourth token I intervened and forced alternate
+tokens at those positions. By alternate tokens I mean tokens which have at least a 5% chance in
+the final softmax layer. For that question I found 55 positions, totalling 159 branches, and I
+had two sampling settings inspired by the paper, 50 and 200. The results which persisted at 50
+resamples did transfer to 200.</p>
+</section>
+
+<section id="sec5" data-title="what I found">
+<h2 id="what-i-found">What I found</h2>
+
+<p>On row 41, I could clearly see the forking at S = 50. I scaled it out to S = 200 and it still
+persisted. In essence, for that row, I found six alternate tokens sitting across five different
+positions. All six alternate tokens moved the mix of final answers beyond the sampling noise.
+However, the majority answer flipped at two positions, tokens 52 and 76. At token 164, sampling
+the alternate token "However" instead of "It" took option A's chances from 88% to a coin flip.</p>
+
+<figure>
+  <img src="figures/fig1_row80_vs_row41.png"
+       alt="Two scatter plots. Row 80: every alternative token sits at a swap effect near zero. Row 41: a cloud of larger effects, six of them marked as beyond sampling noise.">
+  <figcaption>Every alternative token that cleared 5%, on both questions, 50 continuations per
+  branch. The vertical axis is the share of final answers that moved when that token was forced
+  in place of the one the model wrote. Row 80 is flat. Row 41 is not, and the red points are the
+  six that beat a permutation test at p &lt; 0.01.</figcaption>
+</figure>
+
+<figure>
+  <img src="figures/fig2_six_forks_s50_s200.png"
+       alt="Bar chart comparing the six forks measured at 50 samples per branch against the same six measured at 200 samples per branch. All six remain well above zero.">
+  <figcaption>The six forks re-measured at 200 continuations per branch. Effects shrink as the
+  sampling noise is removed, which is what a real effect does, and all six stay significant at
+  p ≤ 0.001.</figcaption>
+</figure>
+</section>
+
+<section id="sec6" data-title="what it does not show">
+<h2 id="what-this-does-not-show">What this does not show</h2>
+
+<p>There are a few limitations that I see. Firstly, I have run only two questions in full. The
+evidence needs more data and more rows. Moreover, the stride length I adopted was four, so the
+experiment is blind to forks that may exist between the sampled positions. Also to be noted is
+the 5% cutoff: tokens rarer than that threshold never get a chance in the forking experiment. And
+of course I have tested only one model, with thinking turned off, so that deserves more models,
+and thinking on versus off could be an interesting scenario.</p>
+
+<p>The predefined threshold I had for the bar was 0.5, whereas Qwen's largest fork was observed
+at 0.35. So only about a third of the answers moved, as opposed to 96% for the bracket fork in
+the Llama data.</p>
+</section>
+
+<section id="sec7" data-title="what comes next">
+<h2 id="what-comes-next">What comes next</h2>
+
+<p>As future work, I would like to address some of the limitations that I've noticed myself, such
+as the stride gap, expanding the question set, and the number of other models I can test. In
+addition, I want to answer one more question: the usability of residual stream activations to
+predict the fork. These are a few items I wish to explore, and I will share them in the next
+versions.</p>
+
+<p class="aiuse"><b>AI use.</b> The experiments were run with Claude (Anthropic) writing the
+scripts and managing the GPU pods. This text is my own dictation; Claude fixed spelling and tense
+and filled in the measured numbers. Code, data and the full experiment journal are in
+<a href="https://github.com/ADITHYAG73/AGsResearch_Claudeoppolous" target="_blank" rel="noopener">AGsResearch_Claudeoppolous</a>,
+under <code>forking/</code>.</p>
+</section>
+
+</div>
+</div>
+<script>
+// contents list, built from the sections, with an active marker that follows the reader.
+// same behaviour as the other two articles.
+(function() {
+  var box = document.getElementById('tocitems');
+  if (!box) return;
+  var links = {}, targets = [];
+  Array.prototype.forEach.call(document.querySelectorAll('.sheet section[id]'), function(sec) {
+    var a = document.createElement('a');
+    a.href = '#' + sec.id;
+    a.textContent = sec.getAttribute('data-title') || sec.id;
+    box.appendChild(a); links[sec.id] = a; targets.push(sec);
+  });
+  var current = null;
+  function setActive(id) {
+    if (current === id) return;
+    if (current && links[current]) links[current].classList.remove('active');
+    if (links[id]) links[id].classList.add('active');
+    current = id;
+  }
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) setActive(e.target.id); });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+  targets.forEach(function(t) { obs.observe(t); });
+})();
+</script>
+</body>
+</html>
