@@ -111,6 +111,23 @@
     <h2>Technical Articles</h2>
 
     <div class="entry">
+      <h3><a href="bird-graph-rl/">We trained a small model to query a graph with RL. It got better, and it stopped listening.</a></h3>
+      <p>Reinforcement learning on Qwen3.5-9B as a Cypher agent over a 650,000-node graph, rewarded only by
+      executing its own queries. It gains on question shapes it never saw, gains on human questions only in
+      answer form, and — measured by removing the hints — learns to get about half as much from a hint as
+      before. Three pre-registered predictions; two failed.</p>
+      <div class="meta"><span>11 Oct 2026</span><span>research note</span><span>6 figures</span><span>Tinker</span></div>
+    </div>
+
+    <div class="entry">
+      <h3><a href="bird-graph-rl-fireworks/">RL post-training a graph-query agent on Fireworks: a 6-point gain, and what it is made of</a></h3>
+      <p>The same recipe on Qwen3.8-27B through Fireworks' serverless training API: a 6.2-point gain on
+      human-written questions against a same-route untrained control, all of it on questions the model
+      could already sometimes answer.</p>
+      <div class="meta"><span>11 Oct 2026</span><span>research note</span><span>6 figures</span><span>Fireworks</span></div>
+    </div>
+
+    <div class="entry">
       <h3><a href="forking-tokens/">A Forking-Tokens Experiment with Qwen3.5-9B</a></h3>
       <p>Single tokens flipped GPT-3.5’s answers in 2024. Do they still flip a 2026 model’s? On a
       question Qwen is confident about, nothing moves. On a question it is torn about, six alternate
