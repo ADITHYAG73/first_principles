@@ -83,9 +83,21 @@ It helps to see what that looks like. Here is a four-hop question from the unsee
 > What mean score do the distinct posts commented on by authors of posts linked to from posts
 > titled 'Local median and local average' have?
 
-The untrained model spends all eight turns on it. It follows the link relationship in the wrong
-direction, writes three queries that do not parse, and runs out of turns without an answer. The
-trained model writes one query, gets 4.0, and stops. We picked this example by a rule, not by
+In our evaluation the untrained model spent all eight turns on it: it followed the link
+relationship in the wrong direction, wrote three queries that do not parse, and ran out of turns
+without an answer, while both trained models wrote one query, got 4.0, and stopped. Below are four
+fresh attempts by each, recorded for this page and shown in full, every word of reasoning, every
+query and every result. The untrained model fails all four. The trained one gets three of four
+exactly right, though less tidily than in the evaluation: it takes five to eight turns.
+
+<iframe id="traj" src="widgets/trajectories.html" title="Agent trajectories, verbatim" loading="lazy"
+  style="width:min(1120px,96vw);position:relative;left:50%;transform:translateX(-50%);border:0;min-height:900px;display:block;margin:26px 0 22px"></iframe>
+<script>
+window.addEventListener("message", function (e) {
+  if (e.data && e.data.trajHeight) document.getElementById("traj").style.height = (e.data.trajHeight + 4) + "px";
+});
+</script>
+ We picked this example by a rule, not by
 taste: among the questions on unseen structures that the untrained model got wrong by any
 standard and two trained models got exactly right, of which there are forty, it is one of the
 deepest.
@@ -122,7 +134,9 @@ The reference answer is the single number 1. The untrained model found that numb
 tries, and on three of them returned it with extras: the post's id beside it twice, and once
 the id, the title and the score as well. After training, all four tries in both of the first
 two runs returned the count and nothing else. (The rule for choosing it: among questions the
-model always got leniently right before and after, the one with the largest strict gain.)
+model always got leniently right before and after, the one with the largest strict gain.) The second tab of the viewer above shows four
+fresh attempts at this question: the untrained model is exactly right in two of them, the trained
+one in all four.
 
 That is a genuine improvement, and for anyone whose downstream code expects a particular shape
 it is the improvement that matters. But on generated questions the model had also learned to
