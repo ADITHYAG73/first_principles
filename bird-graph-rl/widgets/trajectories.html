@@ -109,6 +109,10 @@ function drawGraph(g) {
   network = new vis.Network(document.getElementById("graph"), ds, { physics:{ solver:"forceAtlas2Based", stabilization:{ iterations:200 } },
     interaction:{ hover:true }, edges:{ smooth:{ type:"dynamic" } } });
   network.once("stabilizationIterationsDone", () => network.fit({ animation:false }));
+  // the page loads this frame lazily; refit whenever the canvas gets its real size or comes into view
+  const box = document.getElementById("graph");
+  if (!window._graphRO) { window._graphRO = new ResizeObserver(() => { if (network) { network.redraw(); network.fit({ animation:false }); } }); window._graphRO.observe(box); }
+  setTimeout(() => network && network.fit({ animation:false }), 600);
   network.on("click", e => { const box = document.getElementById("props");
     if (!e.nodes.length) { box.textContent = "click a node"; return; }
     const n = ds.nodes.get(e.nodes[0])._n; box.textContent = ":" + n.labels.join(":") + "  " + JSON.stringify(n.props); });
