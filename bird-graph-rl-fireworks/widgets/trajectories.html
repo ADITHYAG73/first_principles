@@ -106,7 +106,8 @@ function caption(n) {
   return l + "\n" + name;
 }
 function drawGraph(g) {
-  const nodes = g.nodes.map(n => ({ id:n.id, label:caption(n), color:{ background:COLORS[mainLabel(n.labels)] || "#C990C0", border:"rgba(0,0,0,.25)" },
+  const spread = g.nodes.length <= 3;
+  const nodes = g.nodes.map((n, i) => ({ id:n.id, ...(spread ? { x:(i - (g.nodes.length - 1) / 2) * 260, y:0 } : {}), label:caption(n), color:{ background:COLORS[mainLabel(n.labels)] || "#C990C0", border:"rgba(0,0,0,.25)" },
     shape:"ellipse", font:{ size:14, face:"-apple-system, system-ui, sans-serif", multi:false }, _n:n }));
   const edges = g.rels.map((r, i) => ({ id:"e"+i, from:r.from, to:r.to, label:(r.props && r.props.date && g.rels.length <= 50) ? r.type + " " + r.props.date.slice(0, 19).replace("T", " ") : r.type, arrows:"to", font:{ size:10, align:"middle", strokeWidth:3, strokeColor:"#fff" }, color:{ color:"#A5ABB6" } }));
   const ds = { nodes:new vis.DataSet(nodes), edges:new vis.DataSet(edges) };
