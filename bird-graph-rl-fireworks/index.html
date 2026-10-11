@@ -299,7 +299,17 @@ RETURN u.userId, u.displayName, count(b) AS badgeCount     -- 8, csgillespie, 95
 <pre><code class="language-cypher">MATCH (u:User {displayName: 'csgillespie'})-[:EARNED]-&gt;(b:Badge)
 RETURN count(b) AS badgeCount                              -- 95
 </code></pre>
-<p>Untrained: 4 of 8 strict, 8 of 8 lenient. Trained: 4 of 4.</p>
+<p>In the evaluation: untrained 4 of 8 strict, 8 of 8 lenient; trained 4 of 4. In four fresh
+attempts per model recorded for the viewer below, both got 4 of 4, so this one illustrates a
+habit the untrained model has only some of the time.</p>
+<iframe id="traj" class="wide" src="widgets/trajectories.html" title="Agent trajectories, verbatim" loading="lazy"
+  style="border:0;min-height:900px;display:block;margin:26px auto 22px"></iframe>
+<script>
+window.addEventListener("message", function (e) {
+  if (e.data && e.data.trajHeight) document.getElementById("traj").style.height = (e.data.trajHeight + 4) + "px";
+});
+</script>
+
 <p><strong>Substance: not deduplicating when nobody asked.</strong></p>
 <blockquote>
 <p><em>List out the dates that users who are located in Rochester, NY obtained their badges?</em>
@@ -316,14 +326,18 @@ RETURN DISTINCT e.date AS date ORDER BY date               -- 34 rows, wrong
 <pre><code class="language-cypher">MATCH (u:User {location: 'Rochester, NY'})-[e:EARNED]-&gt;(b:Badge)
 RETURN e.date AS date ORDER BY date                        -- 38 rows, right
 </code></pre>
-<p>Untrained: 2 of 8. Trained: 4 of 4. The generated questions state explicitly when things are
-to be counted once, and a reward that demands the exact row count punishes guessing.</p>
+<p>In the evaluation: untrained 2 of 8, trained 4 of 4. The fresh recording was less kind: the
+trained model got 1 of 4, once adding <code>DISTINCT</code> again and twice adding a user-id column. Pooled,
+untrained 3 of 12 and trained 5 of 8. The direction holds; the "all four" does not. One
+example on four samples is an illustration, not evidence, which is why the claim rests on the
+paired test over all 186 questions.</p>
 <p><strong>A regression, for balance.</strong></p>
 <blockquote>
 <p><em>Which user has a higher reputation, Harlan or Jarrod Dixon?</em> (reference: <code>Harlan</code>)</p>
 </blockquote>
 <p>Untrained, 7 of 8 samples returned the name alone. After RL, 3 of 4 returned more than was
-asked (the reputation beside the name, or both users), which fails strict. Training did not uniformly teach "return
+asked (the reputation beside the name, or both users), which fails strict; in the fresh
+recording, 4 of 4 did. Pooled: untrained 10 of 12, trained 1 of 8. Training did not uniformly teach "return
 less"; on this question it pushed the other way.</p>
 </section>
 <section id="sec7" data-title="where it helped and where it did not">
