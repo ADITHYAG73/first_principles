@@ -71,7 +71,12 @@ page = f"""<!DOCTYPE html>
 <meta property="og:title" content="{html.escape(title)}">
 <meta property="og:description" content="{html.escape(desc)}">
 <meta property="og:type" content="article">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="https://adithyag73.github.io/first_principles/assets/og_cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="628">
+<meta name="twitter:image" content="https://adithyag73.github.io/first_principles/assets/og_cover.jpg">
+<meta property="og:url" content="https://adithyag73.github.io/first_principles/{d.resolve().name}/">
 <meta name="author" content="Adithya Giridharan">
 {katex}
 {style}
