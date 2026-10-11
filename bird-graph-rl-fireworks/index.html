@@ -322,7 +322,7 @@ query and then "cleaned them up":</p>
 WHERE u.location = 'Rochester, NY'
 RETURN DISTINCT e.date AS date ORDER BY date               -- 34 rows, wrong
 </code></pre>
-<p>After RL, all four samples left the rows alone:</p>
+<p>In the evaluation, all four samples after RL left the rows alone:</p>
 <pre><code class="language-cypher">MATCH (u:User {location: 'Rochester, NY'})-[e:EARNED]-&gt;(b:Badge)
 RETURN e.date AS date ORDER BY date                        -- 38 rows, right
 </code></pre>
