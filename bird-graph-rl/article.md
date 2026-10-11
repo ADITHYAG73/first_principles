@@ -90,8 +90,8 @@ fresh attempts by each, recorded for this page and shown in full, every word of 
 query and every result. The untrained model fails all four. The trained one gets three of four
 exactly right, though less tidily than in the evaluation: it takes five to eight turns.
 
-<iframe id="traj" src="widgets/trajectories.html" title="Agent trajectories, verbatim" loading="lazy"
-  style="width:min(1120px,96vw);position:relative;left:50%;transform:translateX(-50%);border:0;min-height:900px;display:block;margin:26px 0 22px"></iframe>
+<iframe id="traj" class="wide" src="widgets/trajectories.html" title="Agent trajectories, verbatim" loading="lazy"
+  style="border:0;min-height:900px;display:block;margin:26px auto 22px"></iframe>
 <script>
 window.addEventListener("message", function (e) {
   if (e.data && e.data.trajHeight) document.getElementById("traj").style.height = (e.data.trajHeight + 4) + "px";

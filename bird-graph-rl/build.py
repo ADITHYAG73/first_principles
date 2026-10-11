@@ -72,6 +72,16 @@ page = f"""<!DOCTYPE html>
 <meta name="author" content="Adithya Giridharan">
 {katex}
 {style}
+<style>
+  /* wide sheet: the paper is as wide as the widest figure; text keeps a readable column inside it */
+  .sheet {{ width: 1120px; max-width: 100%; flex: 0 1 1120px; min-width: 0; padding-left: 0; padding-right: 0; }}
+  .sheet > section > * {{ max-width: 760px; margin-left: auto; margin-right: auto; box-sizing: border-box;
+    padding-left: 40px; padding-right: 40px; }}
+  .sheet > section > figure, .sheet > section > table {{ padding-left: 40px; padding-right: 40px; }}
+  .sheet > section > iframe.wide {{ max-width: none; width: 100%; padding: 0 20px; }}
+  @media (max-width: 820px) {{ .sheet > section > * {{ padding-left: 18px; padding-right: 18px; }}
+    .sheet > section > iframe.wide {{ padding: 0 6px; }} }}
+</style>
 </head>
 <body>
 <div class="layout">
