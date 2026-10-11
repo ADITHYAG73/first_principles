@@ -452,6 +452,9 @@ resamples). Ledger rows refer to <code>SHARED_LEDGER.md</code> in the repository
   Fireworks is 0.586. The "fifth to a third" holds against either.</li>
 </ul>
 </section>
+<section id="thanks" data-title="thanks">
+<p class="aiuse"><b>Thanks.</b> Special thanks to <a href="https://thinkingmachines.ai/tinker/" target="_blank" rel="noopener">Thinking Machines Lab</a> for $300 in Tinker credits, which paid for every training run and evaluation in this post. The graph runs on <a href="https://neo4j.com/" target="_blank" rel="noopener">Neo4j Community Edition</a>, free and on a laptop, which is a large part of why an experiment like this is possible for one person. The questions and reference answers come from the <a href="https://bird-bench.github.io/" target="_blank" rel="noopener">BIRD benchmark</a> (CC BY-SA 4.0); the underlying data is Stack Exchange user content.</p>
+</section>
 <section id="aiuse" data-title="how this was made">
 <p class="aiuse"><b>How this was made.</b> I set the goal and the deadline, made the calls on what to run and what to spend, and directed three AI agents: Claude (Anthropic) ran training and evaluation on Tinker and drafted this text from the experiment journal; a second Claude session independently reproduced every headline number from the raw run folders; Codex (OpenAI) generated the training questions to a written specification. Every number is computed by a script from files on disk. Code, data generator, experiment journal and the shared ledger of facts are in <a href="https://github.com/IamAGP/tinker-cookbook/tree/main/tinker_cookbook/recipes/bird_graph_rl" target="_blank" rel="noopener">tinker-cookbook / bird_graph_rl</a>.</p>
 </section>

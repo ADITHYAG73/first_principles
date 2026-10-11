@@ -51,6 +51,9 @@ for k in range(1, len(parts), 2):
     head, text = parts[k].strip(), parts[k + 1]
     label = re.sub(r"^\d+\.\s*", "", head).lower()
     out.append(f'<section id="sec{k//2+1}" data-title="{html.escape(label)}">\n<h2>{html.escape(head)}</h2>\n{conv(text)}\n</section>')
+credits_file = d / "credits.html"
+if credits_file.exists():
+    out.append(f'<section id="thanks" data-title="thanks">\n<p class="aiuse">{credits_file.read_text().strip()}</p>\n</section>')
 out.append(f'<section id="aiuse" data-title="how this was made">\n<p class="aiuse">{aiuse}</p>\n</section>')
 
 katex = """<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
