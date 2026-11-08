@@ -170,7 +170,7 @@ at math. It is bad at stopping.</p>
 <p>The cut-off answers are not long derivations. They are loops. Here is a real one:</p>
 
 <div class="card">
-  <div class="tag">GSM8K train #3868 · original model · pass 1</div>
+  <div class="tag">A GSM8K practice problem · the original model</div>
   <p class="q">A 220-liter barrel has a small leak. It lost 10% of its contents before anyone noticed. How many liters
   are left in the barrel?</p>
 <pre>*   $22 \times 9$
@@ -216,9 +216,8 @@ does one simple thing: find the previous copy of the current phrase, and copy th
     <svg id="cfig" viewBox="0 0 460 150" width="100%" role="img" aria-label="Two laps of the loop. From the position being predicted, an arrow points back to the 0 that followed the same phrase one lap earlier."></svg>
   </div>
   <figcaption><strong>What a copy head does.</strong> Words stand in for tokens to keep this readable. The dashed box is
-  the position being predicted. The solid box is the word that followed the same phrase one lap earlier. Measured on
-  16 real loops, layer 15 head 7 put 74% of its attention on exactly that position, against at most 1.3% at a shifted
-  control position.<sup class="fn"><a href="#src-2" aria-label="source 2">2</a></sup></figcaption>
+  the position being predicted. The solid box is the word that followed the same phrase one lap earlier. In real loops,
+  layer 15 head 7 put 74% of its attention on exactly that word; a word half a lap away got about 1%.<sup class="fn"><a href="#src-2" aria-label="source 2">2</a></sup></figcaption>
 </figure>
 
 <p>Several heads look back like this. Opus ranked them by something else: how hard each one <em>pushes</em> the model
@@ -256,7 +255,7 @@ to the token’s running state. Set a head’s columns to zero and that head wri
 45%.<sup class="fn"><a href="#src-5" aria-label="source 5">5</a></sup> Here is one problem, before and after, with the same random seed in both runs:</p>
 
 <div class="card" style="margin-bottom:12px">
-  <div class="tag">GSM8K train #852 · same sampling seed in both runs</div>
+  <div class="tag">Same problem, same random seed, before and after the edit</div>
   <p class="q" style="margin:0">In a jar that has 50 ants, the number of ants in the jar doubles each hour. How many ants will
   be in the jar after 5 hours?</p>
 </div>
@@ -529,7 +528,7 @@ answers thought for <em>longer</em> than the original's did. They were not cut s
 the loops further but broke something else. Twenty-three answers ended like this:</p>
 
 <div class="card">
-  <div class="tag">GSM8K train #1512 · layer-23 heads fully off</div>
+  <div class="tag">With the two layer-23 heads fully switched off</div>
   <p class="q">For every customer served, an employee gets as many bonus points as 20% of the number of customers
   served. On Monday, Tom served 10 customers per hour for 8 hours. How many bonus points did Tom earn that day?</p>
 <pre>The result is consistent.
@@ -648,30 +647,33 @@ is not allowed.</p>
 <p>Astra followed it. In its 10-pass run it could only see where heads look, so it switched off the two that look
 hardest at the previous lap, layer 15 head 7 and layer 11 head 1, and gained 0.8 points, which is noise. So the
 10-pass comparison is not a fair race. The edit itself is a legitimate weight edit, and every number saying it works
-comes from real runs of the model. But the microscope that found it was not allowed. Opus flagged this itself in its own write-up, before it had seen the post. Astra flagged it independently
-when I asked it to audit the run.</p>
+comes from real runs of the model. But the microscope that found it was not allowed. Opus flagged this itself in its own write-up, before it had seen the post.</p>
 
-<h2 id="checks">Who checked whom?</h2>
+<h2 id="checks">Can you trust a result a model produced?</h2>
 
-<p>I didn’t want to take either model’s word for anything, so I had each check the other.</p>
+<p>A model ran this experiment and a model wrote it up, so the fair worry is that nobody checked the work. I had the two
+models check each other, and I checked the original claim myself.</p>
 
-<ul>
-  <li><strong>Astra audited Opus.</strong><sup class="fn"><a href="#src-9" aria-label="source 9">9</a></sup> It found one thing Opus got wrong: Opus had written that
-  the per-answer held-out results were deleted, but its own 20-second backup had already copied them
-  to cloud storage. Astra recovered all 512
-  <li><strong>Opus audited Astra’s release.</strong><sup class="fn"><a href="#src-7" aria-label="source 7">7</a></sup> The released checkpoint differs from the
-  original model in exactly two matrices, 64 columns each, 130,188 values, matching the authors’ logs.</li>
-  <li><strong>I re-ran the authors’ checkpoint</strong> on my own rented GPU: the first 64 MATH-500 problems went from
-  9.4% to 58.2%. Their headline claim holds up.</li>
-</ul>
+<p>Astra went through Opus’s run and found a real mistake. Opus had said the individual held-out answers were gone. In
+fact its own backup had quietly copied all 512 of them to cloud storage. Astra recovered them, regraded every one, and
+got exactly the numbers Opus had reported.<sup class="fn"><a href="#src-9" aria-label="source 9">9</a></sup> Without being told, it also flagged the rule Opus broke.</p>
 
-<h2 id="limits">What this does not show</h2>
+<p>Opus, in turn, compared the checkpoint the authors released with the original model, weight by weight. Only the two
+matrices the authors describe had changed.<sup class="fn"><a href="#src-7" aria-label="source 7">7</a></sup> And when I ran that checkpoint on a GPU of my own, the first 64
+MATH-500 problems went from 9.4% to 58.2%. The headline result in their post is not an artefact of their setup.</p>
 
-<p>The held-out test is 64 problems, not the full benchmarks, so each number carries several points of noise. Opus ran
-once, and so did each Astra configuration; a second run of either could land differently. Opus tried only two
-strengths for its heads, so its edit is probably not the best one possible, and unlike Astra it ran no random-edit
-control. The reason the layer-23 heads break the boxed answers is a guess. And Opus never measured anything beyond
-math, while the authors report Astra’s edit also lifting instruction following.</p>
+<h2 id="limits">What we still don’t know</h2>
+
+<p>This is one run on a small test. The held-out set is 64 problems, so any single number here could move by several
+points on different problems. Opus ran once, and so did each of Astra’s configurations, so I don’t know how much a
+second attempt would differ.</p>
+
+<p>Opus’s edit is probably not the best it could have been. It tried only two strengths for its heads, and it never
+checked that switching off three random heads does nothing, a control Astra did run for its own edit. Its explanation
+for why the layer-23 heads break the boxed answers is a guess it never tested.</p>
+
+<p>And the authors found that Astra’s edit also improved instruction following, not just math. Nobody has checked
+whether Opus’s edit does the same.</p>
 
 <h2 id="takeaway">What I make of it</h2>
 
@@ -680,8 +682,7 @@ the same head. They differ in where they cut. Opus removed the heads that copy t
 internal state that says “we’re in a loop”.</p>
 
 <p>Those may be two halves of the same machine. Astra’s direction shows up strongly in Opus’s own recordings of loops,
-rising even before a loop starts, and Opus’s edit shrinks it by only 10–14%
-<sup class="fn"><a href="#src-7" aria-label="source 7">7</a></sup> If that is right, the two edits might stack.
+rising even before a loop starts, and Opus’s edit shrinks it by only 10–14%.<sup class="fn"><a href="#src-7" aria-label="source 7">7</a></sup> If that is right, the two edits might stack.
 I haven’t tested it yet.</p>
 
 <p>What stays with me is how small the edits are. Zero a few columns, or reverse one direction in 128 neurons, and a
@@ -702,15 +703,12 @@ where to edit is the whole job, and these models are starting to do the seeing.<
 </ol>
 
 <p class="aiuse"><strong>How this was made.</strong> Claude Opus 5.5 ran the experiment blind, from the task prompt
-only, and drafted this note; I directed, reviewed and edited it. GPT-6 Astra (OpenAI) audited Opus’s run. Everything
-behind the numbers is in this folder:
-<a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/task/">the task</a>, <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/code/">the code</a>, <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/records/">the journal, notes and comparison</a>,
-<a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/generations/">every graded practice answer</a>, <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/edits/E3/">the edit</a> and
-<a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/audit_by_astra/">Astra’s audit</a>. The original work:
+only, and drafted this note; I directed, reviewed and edited it. GPT-6 Astra audited Opus’s run. The original work is
 <a href="https://rikiyat.github.io/blog/weight-space-programming/">the post</a>,
-<a href="https://github.com/RikiyaT/lm_understand-logs">the logs</a>,
-<a href="https://huggingface.co/RikiyaT/Qwen3.5-0.8B-weight-space-programming">the checkpoint</a>.
-Found an error? Good — that means you were counting.</p>
+<a href="https://github.com/RikiyaT/lm_understand-logs">its logs</a> and
+<a href="https://huggingface.co/RikiyaT/Qwen3.5-0.8B-weight-space-programming">its checkpoint</a>.
+Think a number here doesn’t add up? Every answer the model wrote is in the repo, all 1,602 laps of Zach’s loop
+included. Go count them.</p>
 
 </div>
 </div>
