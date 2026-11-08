@@ -1,0 +1,174 @@
+{
+ "my_math500_indices": [
+  3,
+  10,
+  14,
+  37,
+  82,
+  107,
+  116,
+  165,
+  189,
+  192,
+  198,
+  229,
+  234,
+  241,
+  255,
+  277,
+  280,
+  300,
+  302,
+  317,
+  323,
+  332,
+  349,
+  354,
+  361,
+  379,
+  417,
+  441,
+  445,
+  448,
+  480,
+  492
+ ],
+ "my_gsm8k_indices": [
+  24,
+  74,
+  227,
+  236,
+  314,
+  371,
+  432,
+  435,
+  451,
+  490,
+  585,
+  596,
+  641,
+  646,
+  654,
+  719,
+  780,
+  789,
+  852,
+  925,
+  1008,
+  1010,
+  1011,
+  1019,
+  1031,
+  1047,
+  1059,
+  1076,
+  1089,
+  1090,
+  1127,
+  1237
+ ],
+ "unedited": {
+  "my_heldout_math500": {
+   "acc": 3.12,
+   "samples": 128,
+   "missing": 0
+  },
+  "my_heldout_gsm8k": {
+   "acc": 18.75,
+   "samples": 64,
+   "missing": 0
+  },
+  "my_heldout_both": {
+   "acc": 8.33,
+   "samples": 192,
+   "missing": 0
+  },
+  "user_first64_math500": {
+   "acc": 7.42,
+   "samples": 256,
+   "missing": 0
+  },
+  "full_math500": 7.9,
+  "full_gsm8k": 13.84,
+  "n_full_math500_problems": 500,
+  "n_full_gsm8k_problems": 1319
+ },
+ "p10c": {
+  "my_heldout_math500": {
+   "acc": 7.03,
+   "samples": 128,
+   "missing": 0
+  },
+  "my_heldout_gsm8k": {
+   "acc": 23.44,
+   "samples": 64,
+   "missing": 0
+  },
+  "my_heldout_both": {
+   "acc": 12.5,
+   "samples": 192,
+   "missing": 0
+  },
+  "user_first64_math500": {
+   "acc": 11.72,
+   "samples": 256,
+   "missing": 0
+  },
+  "full_math500": 12.35,
+  "full_gsm8k": 25.74,
+  "n_full_math500_problems": 500,
+  "n_full_gsm8k_problems": 1319
+ },
+ "p25c": {
+  "my_heldout_math500": {
+   "acc": 5.47,
+   "samples": 128,
+   "missing": 0
+  },
+  "my_heldout_gsm8k": {
+   "acc": 31.25,
+   "samples": 64,
+   "missing": 0
+  },
+  "my_heldout_both": {
+   "acc": 14.06,
+   "samples": 192,
+   "missing": 0
+  },
+  "user_first64_math500": {
+   "acc": 15.62,
+   "samples": 256,
+   "missing": 0
+  },
+  "full_math500": 14.1,
+  "full_gsm8k": 25.06,
+  "n_full_math500_problems": 500,
+  "n_full_gsm8k_problems": 1319
+ },
+ "p50c": {
+  "my_heldout_math500": {
+   "acc": 42.19,
+   "samples": 128,
+   "missing": 0
+  },
+  "my_heldout_gsm8k": {
+   "acc": 68.75,
+   "samples": 64,
+   "missing": 0
+  },
+  "my_heldout_both": {
+   "acc": 51.04,
+   "samples": 192,
+   "missing": 0
+  },
+  "user_first64_math500": {
+   "acc": 50.78,
+   "samples": 256,
+   "missing": 0
+  },
+  "full_math500": 48.1,
+  "full_gsm8k": 67.1,
+  "n_full_math500_problems": 500,
+  "n_full_gsm8k_problems": 1319
+ }
+}

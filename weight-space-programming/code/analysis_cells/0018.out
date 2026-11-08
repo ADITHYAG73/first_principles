@@ -1,0 +1,26 @@
+</think> id 248069
+k, n_texts, mean logprob per token in period k, share of texts with </think> in top-20 at period start
+0 16 -0.175 0.00
+1 16 -0.1 0.00
+2 16 -0.047 0.00
+3 16 -0.026 0.00
+4 16 -0.016 0.00
+5 16 -0.01 0.00
+6 16 -0.007 0.00
+7 15 -0.005 0.00
+8 15 -0.004 0.00
+9 14 -0.003 0.00
+10 13 -0.003 0.00
+11 12 -0.002 0.00
+gsm8k-train-6572#1 </think> at 1255 logprob -2.047
+gsm8k-train-1417#0 </think> at 1110 logprob -0.591
+gsm8k-train-4090#1 </think> at 2301 logprob -2.701
+gsm8k-train-3868#0 </think> at 1300 logprob -0.932
+gsm8k-train-2373#0 </think> at 2191 logprob -0.792
+gsm8k-train-1988#0 </think> at 815 logprob -2.133
+math-train-algebra-0014#1 </think> at 3405 logprob -1.691
+math-train-algebra-0567#0 </think> at 2218 logprob -2.029
+math-train-algebra-1668#1 </think> at 1479 logprob -1.129
+math-train-algebra-0642#1 </think> at 3583 logprob -0.996
+math-train-precalculus-0327#1 </think> at 1385 logprob -1.088
+math-train-precalculus-0264#0 </think> at 1343 logprob -2.051

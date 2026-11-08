@@ -1,0 +1,138 @@
+{
+  "checked_at_utc": "2026-11-06T19:38:00.403542+00:00",
+  "math_verify_version": "0.9.0",
+  "worker_sha256": "5ecf0651dacd0defb8247b3f69b64185e97caf4e01b1e72718446defa68f59dd",
+  "procedure": "Regraded recovered texts using extracted original scoring functions; no inference; reconstructed gold from local official source caches; prompt text matched every problem. Original installed math-verify version unverified.",
+  "recomputed": {
+    "original": {
+      "n": 256,
+      "accuracy": 0.1016,
+      "accuracy_by_source": {
+        "math500": [
+          0.0312,
+          128
+        ],
+        "gsm8k_test": [
+          0.1719,
+          128
+        ]
+      },
+      "mean_tokens": 30270.5,
+      "cut_share": 0.9102,
+      "failure_counts": {
+        "correct": 23,
+        "cut_off": 233
+      },
+      "cut_and_looping": 115,
+      "think_not_closed": 233
+    },
+    "edited": {
+      "n": 256,
+      "accuracy": 0.4375,
+      "accuracy_by_source": {
+        "math500": [
+          0.3594,
+          128
+        ],
+        "gsm8k_test": [
+          0.5156,
+          128
+        ]
+      },
+      "mean_tokens": 24101.0,
+      "cut_share": 0.4727,
+      "failure_counts": {
+        "correct": 112,
+        "wrong_answer": 22,
+        "no_answer": 1,
+        "cut_off": 121
+      },
+      "cut_and_looping": 41,
+      "think_not_closed": 101
+    },
+    "paired": {
+      "items": 64,
+      "samples": 256,
+      "acc_diff_edited_minus_original": 0.3359,
+      "se": 0.0439,
+      "wrong_to_right": 92,
+      "right_to_wrong": 6
+    }
+  },
+  "reported": {
+    "original": {
+      "n": 256,
+      "accuracy": 0.1016,
+      "accuracy_by_source": {
+        "gsm8k_test": [
+          0.1719,
+          128
+        ],
+        "math500": [
+          0.0312,
+          128
+        ]
+      },
+      "mean_tokens": 30270.5,
+      "cut_share": 0.9102,
+      "failure_counts": {
+        "cut_off": 233,
+        "correct": 23
+      },
+      "cut_and_looping": 115,
+      "think_not_closed": 233
+    },
+    "edited": {
+      "n": 256,
+      "accuracy": 0.4375,
+      "accuracy_by_source": {
+        "gsm8k_test": [
+          0.5156,
+          128
+        ],
+        "math500": [
+          0.3594,
+          128
+        ]
+      },
+      "mean_tokens": 24101.0,
+      "cut_share": 0.4727,
+      "failure_counts": {
+        "correct": 112,
+        "cut_off": 121,
+        "wrong_answer": 22,
+        "no_answer": 1
+      },
+      "cut_and_looping": 41,
+      "think_not_closed": 101
+    },
+    "paired": {
+      "items": 64,
+      "samples": 256,
+      "acc_diff_edited_minus_original": 0.3359,
+      "se": 0.0439,
+      "wrong_to_right": 92,
+      "right_to_wrong": 6
+    }
+  },
+  "exact_summary_match": true,
+  "paired_seeds_match": true,
+  "correct_but_truncated": {
+    "original": [
+      "heldout-gsm8k-0435#1",
+      "heldout-gsm8k-1008#1",
+      "heldout-gsm8k-1076#3"
+    ],
+    "edited": []
+  },
+  "source_meta": {
+    "math_path": "/Users/adithyagiridharan/Desktop/PythonProjects/OpenAI/weight-space-replication/discovery/private/math500-source.jsonl",
+    "math_sha256": "35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132",
+    "math_revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+    "gsm_path": "/Users/adithyagiridharan/.cache/huggingface/hub/datasets--openai--gsm8k/snapshots/740312add88f781978c0658806c59bc2815b9866/main/test-00000-of-00001.parquet",
+    "gsm_sha256": "ee7b8da9e381df27b9e3f7758a159ab2bdaa4dbaa910546cbbc47e0cb44e4f59",
+    "gsm_revision": "740312add88f781978c0658806c59bc2815b9866",
+    "selection_seed": 20261104,
+    "warning": "Original worker selection_meta revision receipt not inspected. These are local cached official sources; actual prompts must match them."
+  }
+}

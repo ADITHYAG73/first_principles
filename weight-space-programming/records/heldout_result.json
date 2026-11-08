@@ -1,0 +1,60 @@
+{
+ "state": "done",
+ "summary": {
+  "original": {
+   "n": 256,
+   "accuracy": 0.1016,
+   "accuracy_by_source": {
+    "gsm8k_test": [
+     0.1719,
+     128
+    ],
+    "math500": [
+     0.0312,
+     128
+    ]
+   },
+   "mean_tokens": 30270.5,
+   "cut_share": 0.9102,
+   "failure_counts": {
+    "cut_off": 233,
+    "correct": 23
+   },
+   "cut_and_looping": 115,
+   "think_not_closed": 233
+  },
+  "edited": {
+   "n": 256,
+   "accuracy": 0.4375,
+   "accuracy_by_source": {
+    "gsm8k_test": [
+     0.5156,
+     128
+    ],
+    "math500": [
+     0.3594,
+     128
+    ]
+   },
+   "mean_tokens": 24101.0,
+   "cut_share": 0.4727,
+   "failure_counts": {
+    "correct": 112,
+    "cut_off": 121,
+    "wrong_answer": 22,
+    "no_answer": 1
+   },
+   "cut_and_looping": 41,
+   "think_not_closed": 101
+  },
+  "paired": {
+   "items": 64,
+   "samples": 256,
+   "acc_diff_edited_minus_original": 0.3359,
+   "se": 0.0439,
+   "wrong_to_right": 92,
+   "right_to_wrong": 6
+  }
+ },
+ "minutes": 147.14
+}

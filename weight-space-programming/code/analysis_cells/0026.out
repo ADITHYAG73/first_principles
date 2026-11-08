@@ -1,0 +1,17 @@
+problem overlap pass4 vs pass5: 0
+original {'correct': 23, 'cut_off': 233} | finished: 23 acc among finished 1.0 | finished length q [1853, 2586, 4168, 5331, 8824] | think closed among finished 23
+   MATH L 1 6 / 32
+   MATH L 2 5 / 32
+   MATH L 3 0 / 32
+   MATH L 4 2 / 32
+edited {'cut_off': 126, 'correct': 115, 'wrong_answer': 15} | finished: 130 acc among finished 0.885 | finished length q [3469, 6020, 11128, 16928, 21529] | think closed among finished 130
+   MATH L 1 21 / 32
+   MATH L 2 11 / 32
+   MATH L 3 12 / 32
+   MATH L 4 16 / 32
+paired per-problem: n 128 mean 0.3477 SE 0.0362
+edited cut-offs exact loop: 109 / 126 | onset q [12119, 17750, 24243]
+right->wrong: [('gsm8k-train-0064#0', 'cut_off', 32768), ('gsm8k-train-6638#0', 'wrong_answer', 13449), ('math-train-algebra-0212#0', 'cut_off', 32768), ('math-train-geometry-0293#0', 'cut_off', 32768)]
+edited wrong answers: 15 by source {'gsm8k': 13, 'math': 2} | lengths [9762, 9933, 10086, 11997, 12305, 12819, 13342, 13355, 13449, 14730, 15230, 16758, 18650, 22349, 25562]
+original thinking tokens before </think> among correct q [1512, 2359, 3516, 4869, 8402]
+edited thinking tokens before </think> among correct q [3037, 5295, 10045, 16359, 20914]

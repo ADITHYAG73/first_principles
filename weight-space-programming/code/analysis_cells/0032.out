@@ -1,0 +1,12 @@
+seed match E2 vs E1: 512 / 512
+original acc 0.1191 {'cut_off': 460, 'correct': 52} | acc among finished 1.0 | GSM8K 0.137 MATH 0.102
+E1       acc 0.4531 {'cut_off': 257, 'wrong_answer': 24, 'correct': 230, 'no_answer': 1} | acc among finished 0.902 | GSM8K 0.477 MATH 0.43
+E2       acc 0.4395 {'wrong_answer': 67, 'correct': 225, 'cut_off': 197, 'no_answer': 23} | acc among finished 0.714 | GSM8K 0.457 MATH 0.422
+E2 - E1  (mean, SE, wrong->right, right->wrong): (np.float64(-0.0137), np.float64(0.024), 66, 73)
+E2 - orig: (np.float64(0.3203), np.float64(0.0251), 175, 11) | E1 - orig: (np.float64(0.334), np.float64(0.026), 185, 14)
+pass4 problems E2-E1 (np.float64(0.0469), np.float64(0.0339), 41, 29)
+pass5 problems E2-E1 (np.float64(-0.0742), np.float64(0.0333), 25, 44)
+transition E1 category -> E2 category: [(('correct', 'correct'), 157), (('cut_off', 'cut_off'), 140), (('cut_off', 'correct'), 62), (('correct', 'cut_off'), 47), (('cut_off', 'wrong_answer'), 46), (('correct', 'no_answer'), 14), (('correct', 'wrong_answer'), 12), (('wrong_answer', 'cut_off'), 10), (('wrong_answer', 'wrong_answer'), 9), (('cut_off', 'no_answer'), 9), (('wrong_answer', 'correct'), 5), (('no_answer', 'correct'), 1)]
+E2 no_answer: think_closed 23 / 23 | finish Counter({'stop': 23}) | lengths [2464, 5750, 6464, 7374, 7750, 7793, 8220, 9068, 10862, 13442, 14931, 16621, 17295, 18208, 19817, 22618, 23017, 23094, 24161, 25798, 28686, 29523, 32516]
+E2 cut-offs with exact loop: 72 / 197
+E2 wrong answers by source Counter({'gsm8k': 49, 'math': 18}) | length q [14128, 17969, 22197, 26761, 30427]

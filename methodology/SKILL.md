@@ -234,11 +234,51 @@ Where topics genuinely overlap (roofline logic, tiling, arithmetic intensity), L
 published article rather than re-deriving — the blog is becoming a connected body of work,
 and cross-references are a feature.
 
+## Technical writing standard (added 2026-11-08, from his review of the weight-space note)
+
+Gold standard: Anthropic's own research and engineering posts — emulate, then improve. Read at least one
+before drafting a new piece. Studied examples (2026-11-08):
+[Tracing the thoughts of a large language model](https://www.anthropic.com/research/tracing-thoughts-language-model),
+[Building effective agents](https://www.anthropic.com/engineering/building-effective-agents).
+What they do, and what we copy:
+
+- **Open with the plain claim**, then the question it raises. No throat-clearing.
+- **Short paragraphs** (2–5 sentences); a dense passage is followed by a one-line plain restatement.
+- **Question-style or topic headings** that make the piece a guided tour ("Does the model plan its rhymes?").
+- **Every mechanism gets a concrete example**: a real input, a real output, then a figure whose caption says
+  what was measured. Interventions are written up as experiments: what was changed, what happened.
+- **Bold only defines terms on first use** or names a recurring principle; never whole sentences.
+- **Limitations get their own paragraph or section**, stated specifically, not as a closing disclaimer.
+- **Hedges match the evidence** ("suggests", "in these runs", "we have not tested"). Surprise is allowed.
+
+His review rules (each came from a real comment; preempt them, don't wait for them):
+
+1. **Show, don't paraphrase.** A claim about model output quotes the real output from the run
+   (a card with problem, tail, token count, link to the record file). Illustrations are labeled as such.
+2. **A vs B beats prose.** Any before/after claim gets a side-by-side of the same input under both conditions.
+3. **Anything literal is not prose.** Code, tokens, formulas and model output go in code font or in a card,
+   never buried mid-sentence. Code font for anything a reader would type or the program emits; no quotation
+   marks around code; don't pluralize code or make it possessive
+   ([Google developer style guide, Code in text](https://developers.google.com/style/code-in-text)).
+4. **Load-bearing facts are set apart**: the key result and the key components get a callout, table or
+   figure, not one more sentence in a paragraph.
+5. **A surprising number shows its denominator** (e.g. "22 wrong vs 0" gets the full outcome breakdown of
+   all answers, so the reader sees the original rarely finished).
+6. **Architecture figures explain, they don't decorate.** No abstract stacked blocks. Show one real unit
+   (one layer, one head, real tokens), what flows in and out, and exactly where an edit cuts. If he cannot
+   read the figure cold, no reader can.
+7. **Name and link every concrete thing**: the exact machine (provider's page), the exact model with its
+   official release page and owner, the exact section of a cited source (a `#:~:text=` text-fragment link
+   when the page has no anchor), and our own records in the repo for every number.
+8. **Attribute correctly**: a model's maker, a paper's authors, an audit's reviewer. Never imply a lab
+   built a model it only used.
+
 ## Standing agreements
 
 - "No technical debt": his correction lists are promised work; log them as vN.x items and honor them.
 - Scope discipline: one sentence + link for skipped depths; the temptation to be complete kills v1s.
-- Never claim Claude can act on his accounts (GitHub etc.) — guide him command by command instead.
+- GitHub: as of 2026-11-08 he authorizes Claude to commit and push to `first_principles` itself. Stage only
+  the files of the task at hand (never his unrelated untracked work), then report the commit and push.
 - Momentum management: when he over-plans deadlines, give honest schedule math with a scoped
   recommendation; when he procrastinates via fun work (animation talk mid-drafting), container it
   ("bounded discussion, then the section gets written today").

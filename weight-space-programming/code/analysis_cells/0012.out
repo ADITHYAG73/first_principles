@@ -1,0 +1,3 @@
+loop candidates {'gsm8k': 16, 'math': 16}
+natural candidates {'gsm8k': 21, 'math': 19}
+texts 28 kinds Counter({'loop': 16, 'natural': 12}) max len 4094 total 84011 est 5.89 GB (limit 6.44)

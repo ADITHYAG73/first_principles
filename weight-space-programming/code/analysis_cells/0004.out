@@ -1,0 +1,21 @@
+---------------------------------------------------------------------------
+ModuleNotFoundError                       Traceback (most recent call last)
+Cell In[11], line 5
+      1 # Hypothesis: the dominant failure is runaway thinking that hits the 32k cap (likely a repetition loop).
+      2 # Grade the 152 finished pass-1 answers (worker died before grading) and build the failure taxonomy.
+      3 import sys, collections, statistics
+      4 sys.path.insert(0, "remote")
+----> 5 import importlib, worker as W  # grading/category helpers only (pure-python, no model code)
+      6 P1 = [json.loads(l) for l in open("work/pass1_partial/gen_original_gpu0.jsonl")]
+      7 items = {pid: dict(gold=PRACTICE[pid]["answer"]) for pid in set(r["id"] for r in P1)}
+      8 P1 = W.finalize_gen(P1, items)
+
+File ~/Desktop/PythonProjects/claude/remote/worker.py:34
+     31 os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
+     33 sys.path.insert(0, str(Path(__file__).resolve().parent))
+---> 34 from common import (ACT_ANSWER_TOKENS, BUCKET, FULL_ATTN_LAYERS, MAX_TOKENS_CAP, PROMPT_SUFFIX,
+     35                     REGION, SAMPLING, item_seed)
+     37 BASE = Path("/opt/wsp")
+     38 ORIG_DIR = BASE / "models" / "original"
+
+ModuleNotFoundError: No module named 'common'

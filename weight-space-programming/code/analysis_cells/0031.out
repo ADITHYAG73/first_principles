@@ -1,0 +1,2 @@
+['model.language_model.layers.15.self_attn.o_proj.weight', 'model.language_model.layers.19.self_attn.o_proj.weight', 'model.language_model.layers.23.self_attn.o_proj.weight']
+pass-7 problems 256 Counter({'gsm8k': 128, 'math': 128})

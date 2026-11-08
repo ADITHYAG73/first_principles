@@ -1,0 +1,5 @@
+['model.language_model.layers.15.self_attn.o_proj.weight', 'model.language_model.layers.19.self_attn.o_proj.weight']
+15 zeroed cols all zero: True | other cols identical: True
+19 zeroed cols all zero: True | other cols identical: True
+L23 equals original: True
+req10 problems 256 edited

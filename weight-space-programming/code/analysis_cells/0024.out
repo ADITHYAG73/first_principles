@@ -1,0 +1,10 @@
+original cut 227 exact loops 217 onset q [4320, 5825, 8524] period q [27, 48, 94]
+E1       cut 131 exact loops 109 onset q [10530, 15995, 23378] period q [21, 55, 99]
+E1 cut-offs without exact loop: 22 unique-line share of last 4k tokens: [0.008, 0.014, 0.044, 0.051, 0.076, 0.096, 0.291, 0.315, 0.355, 0.491, 0.533, 0.598, 0.706, 0.747, 0.807, 0.821, 0.821, 0.968, 1.0, 1.0, 1.0, 1.0]
+E1 loops where gold string appears before onset: 76 / 109
+=== math-train-algebra-0895#1 onset 20990 period 61
+'w`.\n    Wait, `5^6` is `5` to the power of `6`.\n    `5^w` is `5` to the power of `w`.\n    So `5^65^w` is `5^6` and `5^'
+=== math-train-geometry-0699#0 onset 22598 period 87
+" the wedges are 3D regions, then the volume of one wedge is $V_{wedge} = \\frac{1}{4} V_{sphere}$.\n            *   So the volume of one wedge is $72\\pi$.\n            *   Wait, I think I made a mistake in the previous step.\n            *   Let's check "
+=== math-train-prealgebra-0412#1 onset 12401 period 60
+' 29.8 + 0.3 = 30.1.\n    29.8 + 0.3 = 30.1.\n    29.8 + 0.3 = 30.1.\n    \n    Wait,'

@@ -1,0 +1,15 @@
+E1: mean change in logprob of actual next token when head removed (first order); ratio = loop / natural harm
+(19, 5) {'loop': -0.0311, 'pre': -0.1119, 'natural': -0.1081} ratio 0.29
+(15, 5) {'loop': -0.0061, 'pre': -0.0216, 'natural': -0.0171} ratio 0.36
+(23, 5) {'loop': -0.4568, 'pre': -0.2161, 'natural': -0.0906} ratio 5.04
+(23, 4) {'loop': -0.247, 'pre': -0.1242, 'natural': -0.0547} ratio 4.52
+(23, 0) {'loop': -0.0889, 'pre': -0.07, 'natural': -0.0602} ratio 1.48
+(23, 6) {'loop': -0.0275, 'pre': -0.12, 'natural': -0.1184} ratio 0.23
+(23, 7) {'loop': -0.0009, 'pre': -0.0154, 'natural': -0.0146} ratio 0.06
+(23, 2) {'loop': -0.0118, 'pre': -0.1418, 'natural': -0.1531} ratio 0.08
+(11, 6) {'loop': -0.0008, 'pre': -0.0078, 'natural': -0.0103} ratio 0.07
+(11, 1) {'loop': -0.0009, 'pre': -0.001, 'natural': -0.0002} ratio 5.11
+(19, 2) {'loop': -0.0427, 'pre': -0.0915, 'natural': -0.1107} ratio 0.39
+(15, 3) {'loop': 0.0017, 'pre': -0.0134, 'natural': -0.0185} ratio -0.09
+('g_clean(19.5+15.5)', 0) {'loop': -0.0622, 'pre': -0.1729, 'natural': -0.1553} ratio 0.4
+('g_clean+11.1', 0) {'loop': -0.0678, 'pre': -0.1782, 'natural': -0.1603} ratio 0.42

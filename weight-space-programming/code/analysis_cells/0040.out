@@ -1,0 +1,5 @@
+['model.language_model.layers.15.self_attn.o_proj.weight', 'model.language_model.layers.19.self_attn.o_proj.weight', 'model.language_model.layers.23.self_attn.o_proj.weight']
+model.language_model.layers.15.self_attn.o_proj.weight.safetensors sha256 identical to archived E3: True
+model.language_model.layers.19.self_attn.o_proj.weight.safetensors sha256 identical to archived E3: True
+model.language_model.layers.23.self_attn.o_proj.weight.safetensors sha256 identical to archived E3: True
+L23 heads4-5 ratio 0.5 | rest identical True

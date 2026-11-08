@@ -1,0 +1,96 @@
+{
+  "checked_at_utc": "2026-11-06T19:37:19.790280+00:00",
+  "method": "Read safetensors headers and arrays with NumPy; compare exact values. No model or layer execution.",
+  "base_repo": "Qwen/Qwen3.5-0.8B",
+  "base_revision_declared_in_harness": "2fc06364715b967f1860aea9cf38778875588b17",
+  "base_path": "/Users/adithyagiridharan/.cache/huggingface/hub/models--Qwen--Qwen3.5-0.8B/snapshots/2fc06364715b967f1860aea9cf38778875588b17/model.safetensors-00001-of-00001.safetensors",
+  "base_resolved_path": "/Users/adithyagiridharan/.cache/huggingface/hub/models--Qwen--Qwen3.5-0.8B/blobs/04b1c301231dd422b8860db31311ab2721511346a32cb1e079c4c4e5f1fe4696",
+  "base_file_sha256": "04b1c301231dd422b8860db31311ab2721511346a32cb1e079c4c4e5f1fe4696",
+  "local_edit_file_count": 3,
+  "recovered_job_bundle_present": true,
+  "recovered_job_bundle_sha256": "5196674a5229e545afc677529a357a1566869c151558857bec45250192f54334",
+  "tensors": [
+    {
+      "name": "model.language_model.layers.15.self_attn.o_proj.weight",
+      "shape": [
+        1024,
+        2048
+      ],
+      "columns_half_open": [
+        1536,
+        2048
+      ],
+      "factor": 0,
+      "base_dtype": "BF16",
+      "saved_edit_dtype": "F32",
+      "matches_described_edit_exactly": true,
+      "changed_values": 524288,
+      "base_native_tensor_sha256": "2f5be1b0f59d3bf45a992e18c26b3658ce5112527ea570b00d05fe1a48140092",
+      "edit_native_tensor_sha256": "34d30cf8a6468353d092b1c41f48729c7039d15d42ed18c98bb997701cc2e99c",
+      "edit_file_sha256": "b8e688f62170f81cf0d0dce327def874246375c36906b8bf54fbab42d9b31ecf",
+      "archive_file_sha256": "b8e688f62170f81cf0d0dce327def874246375c36906b8bf54fbab42d9b31ecf",
+      "current_equals_archive_bytes": true,
+      "edit_values_exactly_bf16_representable": true,
+      "job_dtype": "F32",
+      "job_native_tensor_sha256": "34d30cf8a6468353d092b1c41f48729c7039d15d42ed18c98bb997701cc2e99c",
+      "job_tensor_equals_current_exactly": true,
+      "job_tensor_native_bytes_equal_current": true
+    },
+    {
+      "name": "model.language_model.layers.19.self_attn.o_proj.weight",
+      "shape": [
+        1024,
+        2048
+      ],
+      "columns_half_open": [
+        0,
+        256
+      ],
+      "factor": 0,
+      "base_dtype": "BF16",
+      "saved_edit_dtype": "F32",
+      "matches_described_edit_exactly": true,
+      "changed_values": 262144,
+      "base_native_tensor_sha256": "1cc073772f5471e681af8b4cd8b8ceedf2ede22b2e062949671cf0f17335e8bf",
+      "edit_native_tensor_sha256": "02bb79d01a7d6ab12587f767b465d0dca29f61bb197e79d76a3e69ef9e3c5dce",
+      "edit_file_sha256": "f17dccd50e0a5fcb0bbb55537b09ed792e05416d760736b610b0dbec82ae8912",
+      "archive_file_sha256": "f17dccd50e0a5fcb0bbb55537b09ed792e05416d760736b610b0dbec82ae8912",
+      "current_equals_archive_bytes": true,
+      "edit_values_exactly_bf16_representable": true,
+      "job_dtype": "F32",
+      "job_native_tensor_sha256": "02bb79d01a7d6ab12587f767b465d0dca29f61bb197e79d76a3e69ef9e3c5dce",
+      "job_tensor_equals_current_exactly": true,
+      "job_tensor_native_bytes_equal_current": true
+    },
+    {
+      "name": "model.language_model.layers.23.self_attn.o_proj.weight",
+      "shape": [
+        1024,
+        2048
+      ],
+      "columns_half_open": [
+        1024,
+        1536
+      ],
+      "factor": 0.5,
+      "base_dtype": "BF16",
+      "saved_edit_dtype": "F32",
+      "matches_described_edit_exactly": true,
+      "changed_values": 524288,
+      "base_native_tensor_sha256": "0bfc9597711007322dfd0be5efc1d105232e9c89efcb03cc3d06b9a29ccdd8f3",
+      "edit_native_tensor_sha256": "9574d486e6448d6c6d1e965c3e54a18fcb3aab25fa9991bbf2d701e764c71bd6",
+      "edit_file_sha256": "01a56c9e01d3613d886de51253e22702055f1a19cac3d8424435bb8bef32f055",
+      "archive_file_sha256": "01a56c9e01d3613d886de51253e22702055f1a19cac3d8424435bb8bef32f055",
+      "current_equals_archive_bytes": true,
+      "edit_values_exactly_bf16_representable": true,
+      "job_dtype": "F32",
+      "job_native_tensor_sha256": "9574d486e6448d6c6d1e965c3e54a18fcb3aab25fa9991bbf2d701e764c71bd6",
+      "job_tensor_equals_current_exactly": true,
+      "job_tensor_native_bytes_equal_current": true
+    }
+  ],
+  "job_bundle_tensor_names_exactly_match_local_edits": true,
+  "total_changed_values": 1310720,
+  "all_described_edits_exact": true,
+  "caveat": "A matching submitted job bundle plus worker build code links this edit to the job input. There is no independent hash of the fully materialized GPU checkpoint in this audit."
+}

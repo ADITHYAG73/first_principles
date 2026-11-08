@@ -1,0 +1,2 @@
+128 128 Counter({1: 16, 2: 16, 3: 16, 4: 16})
+['model.language_model.layers.15.self_attn.o_proj.weight', 'model.language_model.layers.19.self_attn.o_proj.weight']

@@ -1,0 +1,65 @@
+{
+ "used": 10,
+ "passes": [
+  {
+   "k": 1,
+   "job": "1-a6",
+   "type": "generate",
+   "model": "original"
+  },
+  {
+   "k": 2,
+   "job": "2-a7",
+   "type": "teacher_forced",
+   "model": "original"
+  },
+  {
+   "k": 3,
+   "job": "3-a8",
+   "type": "teacher_forced",
+   "model": "edited"
+  },
+  {
+   "k": 4,
+   "job": "4-a9",
+   "type": "generate",
+   "model": "both"
+  },
+  {
+   "k": 5,
+   "job": "5-a10",
+   "type": "generate",
+   "model": "both"
+  },
+  {
+   "k": 6,
+   "job": "6-a11",
+   "type": "teacher_forced",
+   "model": "edited"
+  },
+  {
+   "k": 7,
+   "job": "7-a12",
+   "type": "generate",
+   "model": "edited"
+  },
+  {
+   "k": 8,
+   "job": "8-a13",
+   "type": "generate",
+   "model": "edited"
+  },
+  {
+   "k": 9,
+   "job": "9-a14",
+   "type": "generate",
+   "model": "edited"
+  },
+  {
+   "k": 10,
+   "job": "10-a15",
+   "type": "generate",
+   "model": "edited"
+  }
+ ]
+}

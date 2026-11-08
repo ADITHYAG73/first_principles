@@ -1,0 +1,16 @@
+original {'cut_off': 227, 'correct': 29} | finished: 29 acc among finished 1.0 | finished length q [1205, 2499, 4315, 6828, 8220] | think closed among finished 29
+   MATH L 1 6 / 32
+   MATH L 2 1 / 32
+   MATH L 3 3 / 32
+   MATH L 4 3 / 32
+edited {'cut_off': 131, 'wrong_answer': 9, 'correct': 115, 'no_answer': 1} | finished: 125 acc among finished 0.92 | finished length q [4289, 6663, 11088, 16469, 20659] | think closed among finished 125
+   MATH L 1 14 / 32
+   MATH L 2 14 / 32
+   MATH L 3 13 / 32
+   MATH L 4 9 / 32
+edited cut-offs with exact periodic tail: 109 / 131 | onset q [10530, 15995, 23378] | period q [21, 55, 99]
+right->wrong: [('gsm8k-train-0852#0', 'cut_off', 32768), ('gsm8k-train-1251#1', 'cut_off', 32768), ('gsm8k-train-1369#0', 'cut_off', 32768), ('gsm8k-train-3156#1', 'cut_off', 32768), ('gsm8k-train-3431#0', 'wrong_answer', 11383), ('gsm8k-train-4683#0', 'cut_off', 32768), ('math-train-algebra-0895#1', 'cut_off', 32768), ('math-train-counting_and_probability-0295#0', 'cut_off', 32768), ('math-train-intermediate_algebra-0176#1', 'cut_off', 32768), ('math-train-prealgebra-0240#1', 'cut_off', 32768)]
+original thinking tokens before </think> among correct, quartiles [993, 2000, 3973, 6386, 7558]
+edited thinking tokens before </think> among correct, quartiles [3843, 5757, 10016, 15544, 19708]
+original 'Wait' tokens per 1k thinking tokens (correct answers): median 0.0
+edited 'Wait' tokens per 1k thinking tokens (correct answers): median 0.05

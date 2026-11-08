@@ -1,0 +1,15 @@
+original acc 0.1191 {'cut_off': 460, 'correct': 52} | acc among finished 1.0 | GSM8K 0.137 MATH 0.102
+E1       acc 0.4531 {'cut_off': 257, 'wrong_answer': 24, 'correct': 230, 'no_answer': 1} | acc among finished 0.902 | GSM8K 0.477 MATH 0.43
+E2       acc 0.4395 {'wrong_answer': 67, 'correct': 225, 'cut_off': 197, 'no_answer': 23} | acc among finished 0.714 | GSM8K 0.457 MATH 0.422
+E3       acc 0.5098 {'cut_off': 207, 'correct': 261, 'wrong_answer': 42, 'no_answer': 2} | acc among finished 0.856 | GSM8K 0.527 MATH 0.492
+E3 - E1: (np.float64(0.0566), np.float64(0.0207), 67, 38) | E3 - E2: (np.float64(0.0703), np.float64(0.0224), 82, 46) | E3 - orig: (np.float64(0.3906), np.float64(0.0259), 205, 5)
+pass4 problems E3-E1 (np.float64(0.0742), np.float64(0.0289), 35, 16)
+pass5 problems E3-E1 (np.float64(0.0391), np.float64(0.0297), 32, 22)
+MATH L 1 {'orig': 12, 'E1': 35, 'E3': 48} of 64
+MATH L 2 {'orig': 6, 'E1': 25, 'E3': 26} of 64
+MATH L 3 {'orig': 3, 'E1': 25, 'E3': 27} of 64
+MATH L 4 {'orig': 5, 'E1': 25, 'E3': 25} of 64
+exact-loop cut-offs: E1 218 E3 122
+E3 no_answer: [('math-train-number_theory-0834#0', True, 14040), ('math-train-prealgebra-0185#0', True, 17528)]
+E1 thinking tokens before </think> among correct q [3235, 5629, 10030, 15930, 20568]
+E3 thinking tokens before </think> among correct q [2706, 5803, 11394, 18024, 21992]

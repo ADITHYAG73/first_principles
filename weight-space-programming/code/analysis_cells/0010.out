@@ -1,0 +1,14 @@
+n 512 {'cut_off': 430, 'correct': 81, 'wrong_answer': 1}
+gsm8k 256 {'cut_off': 210, 'correct': 45, 'wrong_answer': 1} acc 0.1914
+math 256 {'correct': 36, 'cut_off': 220} acc 0.1562
+MATH by level: (n, correct, cut)
+  1 52 21 33
+  2 52 8 45
+  3 52 8 45
+  4 50 3 47
+  5 50 0 50
+natural finishes 82 correct 81 token quartiles [718, 1784, 4064, 6856, 28369]
+gsm8k cut 210 exact periodic tail 204 onset q [1757, 3930, 5163, 6805, 19961] period q [11, 34, 62, 108, 390]
+math cut 220 exact periodic tail 212 onset q [1701, 4596, 7039, 9418, 26005] period q [8, 23, 41, 72, 314]
+cut-offs without exact periodic tail: 14 [('gsm8k-train-1774#0', 0.941), ('gsm8k-train-2485#1', 0.734), ('gsm8k-train-3007#1', 0.918), ('gsm8k-train-4495#0', 0.949), ('gsm8k-train-5544#1', 0.972), ('gsm8k-train-6990#0', 0.0), ('math-train-counting_and_probability-0497#0', 0.0), ('math-train-counting_and_probability-0579#0', 0.0), ('math-train-geometry-0006#0', 0.957), ('math-train-number_theory-0048#0', 0.761), ('math-train-number_theory-0048#1', 0.0), ('math-train-number_theory-0768#0', 0.0), ('math-train-prealgebra-0186#1', 0.0), ('math-train-prealgebra-0526#0', 0.0)]
+problems with 0/1/2 samples cut: Counter({2: 194, 1: 42, 0: 20})

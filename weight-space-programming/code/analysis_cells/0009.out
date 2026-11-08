@@ -1,0 +1,4 @@
+exact periodic tail found in 113/115 cut-offs
+onset (token) quartiles [1757, 4124, 5202, 6850, 13025]
+period (tokens) quartiles [11, 37, 67, 104, 390]
+periodic tail length (tokens) median 27471

@@ -1,0 +1,8 @@
+E1 acc 0.4766 {'cut_off': 242, 'correct': 243, 'wrong_answer': 24, 'no_answer': 3} | acc among finished 0.9 | GSM8K 0.457 MATH 0.496
+   MATH by level of 64: {'1': 38, '2': 42, '3': 29, '4': 18}
+E3 acc 0.5508 {'cut_off': 184, 'correct': 281, 'wrong_answer': 46, 'no_answer': 1} | acc among finished 0.857 | GSM8K 0.547 MATH 0.555
+   MATH by level of 64: {'1': 48, '2': 44, '3': 29, '4': 21}
+FRESH paired E3 - E1 (mean, SE, wrong->right, right->wrong): (np.float64(0.0742), np.float64(0.0206), 77, 39)
+gsm8k (np.float64(0.0898), np.float64(0.0306), 42, 19)
+math (np.float64(0.0586), np.float64(0.0275), 35, 20)
+DECISION (pre-registered: E3 if > 0): E3

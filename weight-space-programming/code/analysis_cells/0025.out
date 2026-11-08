@@ -1,0 +1,1 @@
+loop candidates 28 | texts 28 Counter({'loop': 20, 'natural': 8}) | max 12155 total 231987 | est 3.54 GB

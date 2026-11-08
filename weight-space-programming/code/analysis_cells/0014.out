@@ -1,0 +1,6 @@
+(28, 4094, 1024) (28, 4094) (28, 4094) (28, 4094, 20)
+token ids match: True
+text 0 loop layer 3 {'rel_err_median': 0.007388236001133919, 'rel_err_p95': 0.009806987829506397}
+text 0 loop layer 23 {'rel_err_median': 0.005251750815659761, 'rel_err_p95': 0.006616826169192791}
+text 20 natural layer 3 {'rel_err_median': 0.007314630784094334, 'rel_err_p95': 0.009889482520520687}
+text 20 natural layer 23 {'rel_err_median': 0.005557985045015812, 'rel_err_p95': 0.00687809195369482}

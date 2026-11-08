@@ -1,0 +1,21 @@
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+Cell In[46], line 5
+      1 # Restore E3 (decision per pre-registered rule) from work/edits_archive/E3, verify byte-identical to the bundle used in passes 8-9.
+      2 from safetensors.torch import load_file
+      3 import hashlib, glob, os
+      4 for f in sorted(glob.glob("work/edits_archive/E3/*.safetensors")):
+----> 5     d = load_file(f); (k, W), = d.items(); save_edit(k, W)
+      6 print(edited())
+      7 for f in sorted(glob.glob("work/edits_archive/E3/*.safetensors")):
+      8     g = "work/edited/" + os.path.basename(f)
+
+Cell In[1], line 72, in save_edit(name, tensor)
+     70 def save_edit(name: str, tensor: torch.Tensor) -> str:
+     71     if name not in NAMES:
+---> 72         raise KeyError(f"unknown tensor {name}")
+     73     if name in FORBIDDEN:
+     74         raise PermissionError(f"{name} is out of scope (final norm / embedding / output layer)")
+     75     orig = load_original(name)
+
+KeyError: 'unknown tensor w'

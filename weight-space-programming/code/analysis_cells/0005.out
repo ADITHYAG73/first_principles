@@ -1,0 +1,5 @@
+finished: 152 by source Counter({'gsm8k': 148, 'math': 4})
+gsm8k n 148 categories {'correct': 33, 'cut_off': 115} acc 0.243
+math n 4 categories {'correct': 4} acc 1.0
+cut-offs: 115 | think closed among cut: 0 | dup_line_share median: 0.984 | max_window_repeats>=3: 45
+natural finishes: 37 lengths median 3802 acc among natural 1.0

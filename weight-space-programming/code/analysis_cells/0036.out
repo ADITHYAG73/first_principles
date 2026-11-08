@@ -1,0 +1,4 @@
+excluded 512
+256 Counter({1: 32, 2: 32, 3: 32, 4: 32})
+['model.language_model.layers.15.self_attn.o_proj.weight', 'model.language_model.layers.19.self_attn.o_proj.weight', 'model.language_model.layers.23.self_attn.o_proj.weight']
+L23 cols 1024-1535 ratio edited/orig: 0.5 | rest identical: True

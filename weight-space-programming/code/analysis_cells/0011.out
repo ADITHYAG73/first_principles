@@ -1,0 +1,20 @@
+=== gsm8k-train-6233#0 onset=8599 period=50 gold=20
+BEFORE: '\n    *   "There are 50 children at the party. Three-fifths of them are boys."\n    *   "Them" refers to "boys".\n    *   So 3/5 of boys are boys.\n    *   This implies 30 boys are boys.\n    *   Then 20 boys are girls?\n    *   No'
+PERIOD: ', if "them" refers to the boys, then 3/5 of boys are boys.\n    *   This implies 30 boys are boys.\n    *   Then 20 boys are girls?\n    *   Wait'
+=== gsm8k-train-3311#1 onset=6410 period=77 gold=9000
+BEFORE: '} = 5 \\times Price_{old} - 1000$.\n                *   Let\'s check the alternative: "sold for $1000 less than five times more than he had made".\n                *   Wait, "less than five times more" -> $Price_{new} = 5 \\times Price_{old} - 1000$.'
+PERIOD: '\n                *   Wait, "five times more" -> $5 \\times Price_{old}$.\n                *   So $Price_{new} = 5 \\times Price_{old} - 1000$.\n                *   Wait, let\'s check the alternative: "sold for $1000 less than five times more than he had made".'
+=== gsm8k-train-7456#0 onset=3845 period=59 gold=15
+BEFORE: "\n        *   *Wait, what if the discount is $1 for every 5 fruits, meaning she gets a discount of $1 for every 5 fruits?*\n            *   No, that's what I said.\n            *   Let's check if there's any other interpretation.\n            *   What if"
+PERIOD: " the discount is $1 for every 5 fruits, meaning she gets a discount of $1 for every 5 fruits?\n            *   No, that's what I said.\n\n        *   *Wait, let's check if there's any other interpretation.*\n            *   Maybe"
+=== math-train-number_theory-0505#0 onset=13039 period=242 gold=2
+BEFORE: ' = 12(1) + 10$.\n    So $c=20$ is $12k_c + 10$.\n    So $a+b+c = 12(1+1+1) + 26 = 62$.\n    But $a+b+c = 60$.\n    So $62 \\neq'
+PERIOD: ' 60$.\n    So $a=19, b=21, c=20$ is NOT a solution.\n    Wait, $a=19$ satisfies $a \\equiv 7 \\pmod{12}$.\n    $19 = 12(1) + 7$.\n    So $a=19$ is $12k_a + 7$.\n    $b=21$ satisfies $b \\equiv 9 \\pmod{12}$.\n    $21 = 12(1) + 9$.\n    So $b=21$ is $12k_b + 9$.\n    $c=20$ satisfies $c \\equiv 10 \\pmod{12}$.\n   '
+=== gsm8k-train-0819#0 onset=4918 period=87 gold=50
+BEFORE: ' it mean the days 4, 5, 6, 7?\n        *   Wait, is there any scenario where "remaining days" means the days 4, 5, 6, 7?\n        *   Wait, I\'m getting stuck in the loop of checking if "remaining days" means the days 4, 5, 6, 7'
+PERIOD: '.\n        *   Let\'s check the wording again.\n        *   "remaining days of the week"\n        *   Could it mean the days 4, 5, 6, 7?\n        *   Wait, is there any scenario where "remaining days" means the days 4, 5, 6, 7?\n        *   Wait, I\'m checking my own logic again'
+=== gsm8k-train-1522#1 onset=7201 period=100 gold=9
+BEFORE: "plies he wants to use the 6 cups.\n        *   So, 9 eggs.\n\n    *   *Wait, let's check the possibility of a trick.*\n        *   Maybe the question is asking for the number of eggs needed to make bread *with* 6 cups of flour *remaining*?\n        *   No"
+PERIOD: ".\n\n    *   *Wait, let's check the possibility of a trick.*\n        *   Maybe the question is asking for the number of eggs needed to make bread *using* the 6 cups of flour he has *remaining*?\n        *   Wait, does he want to use the 6 cups *of flour*?\n        *   If he has 6 cups of flour remaining"
+loop periods containing 'Wait': 381 / 416
+most common period-start token ids: [(198, 93), (13, 55), (393, 33), (12576, 26), (279, 24), (11, 14), (220, 10), (283, 10)]

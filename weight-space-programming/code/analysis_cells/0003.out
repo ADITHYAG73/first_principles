@@ -1,0 +1,1 @@
+256 Counter({'gsm8k': 128, 'math': 128}) Counter({1: 26, 2: 26, 3: 26, 4: 25, 5: 25}) Counter({'algebra': 30, 'prealgebra': 24, 'precalculus': 17, 'geometry': 15, 'intermediate_algebra': 15, 'number_theory': 14, 'counting_and_probability': 13})

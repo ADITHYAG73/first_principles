@@ -1,0 +1,37 @@
+layer-level DLA (layer 1..24; * = full attention):
+ layer  0  loop  -2.340  pre  -1.908  natural  -2.212
+ layer  1  loop  -0.126  pre  -0.022  natural   0.020
+ layer  2  loop   0.013  pre   0.072  natural   0.085
+ layer  3* loop   0.039  pre   0.048  natural   0.023
+ layer  4  loop  -0.023  pre  -0.001  natural  -0.011
+ layer  5  loop  -0.086  pre  -0.002  natural  -0.051
+ layer  6  loop  -0.092  pre   0.053  natural   0.074
+ layer  7* loop   0.044  pre  -0.068  natural  -0.086
+ layer  8  loop  -0.063  pre   0.005  natural  -0.007
+ layer  9  loop   0.063  pre   0.007  natural   0.039
+ layer 10  loop   0.060  pre   0.106  natural   0.095
+ layer 11* loop  -0.251  pre  -0.016  natural   0.022
+ layer 12  loop  -0.151  pre   0.044  natural   0.071
+ layer 13  loop  -0.381  pre   0.070  natural   0.127
+ layer 14  loop  -0.046  pre   0.511  natural   0.450
+ layer 15* loop   2.902  pre   0.859  natural   0.783
+ layer 16  loop   0.248  pre   0.593  natural   0.646
+ layer 17  loop   0.941  pre   1.349  natural   1.560
+ layer 18  loop   1.228  pre   2.059  natural   2.368
+ layer 19* loop   2.661  pre   1.533  natural   1.086
+ layer 20  loop   1.504  pre   1.727  natural   2.256
+ layer 21  loop   2.685  pre   3.035  natural   3.152
+ layer 22  loop   4.984  pre   3.767  natural   3.976
+ layer 23* loop  20.777  pre  12.918  natural  13.092
+L 3 copy-all [0.018 0.018 0.01  0.014 0.041 0.15  0.021 0.012]
+    control  [0.007 0.008 0.006 0.006 0.006 0.007 0.01  0.003]
+L 7 copy-all [0.036 0.05  0.046 0.039 0.073 0.041 0.041 0.01 ]
+    control  [0.004 0.005 0.004 0.006 0.008 0.009 0.002 0.   ]
+L11 copy-all [0.055 0.498 0.084 0.036 0.049 0.034 0.052 0.047]
+    control  [0.01  0.001 0.011 0.003 0.011 0.013 0.009 0.013]
+L15 copy-all [0.058 0.078 0.097 0.112 0.137 0.226 0.136 0.735]
+    control  [0.01  0.008 0.006 0.008 0.007 0.002 0.004 0.   ]
+L19 copy-all [0.145 0.08  0.153 0.131 0.064 0.358 0.203 0.25 ]
+    control  [0.002 0.002 0.001 0.001 0.006 0.005 0.003 0.004]
+L23 copy-all [0.348 0.164 0.007 0.112 0.32  0.581 0.001 0.31 ]
+    control  [0.004 0.004 0.001 0.003 0.004 0.002 0.001 0.004]

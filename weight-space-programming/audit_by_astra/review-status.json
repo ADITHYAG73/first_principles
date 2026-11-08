@@ -1,0 +1,46 @@
+{
+  "artifact_url": "https://claude.ai/artifact/7jbDfcCWgBnVWuvTsLHgsq",
+  "status": "complete",
+  "checked_at_utc": "2026-11-06T19:32:16.775587+00:00",
+  "artifact_content_read": true,
+  "access_findings": [
+    "Web fetcher inaccessible",
+    "Browser tab binding fails: Cannot read properties of undefined (reading timeoutMs)",
+    "Public HTML shell downloaded with browser user-agent, but contains no report text",
+    "Unauthenticated frame endpoint returned HTTP 403; no authenticated access attempted",
+    "Native Chrome accessibility read works; active page is original authors blog",
+    "User asked to select existing The Loop Breakers tab; waiting"
+  ],
+  "original_source_commit": "4d09ba6d6a7e891dd8063974dfe81b3d78e3494f",
+  "original_winning_edit": "MLP down_proj layers 15 and 19; 64 selected columns per layer; W_new=W_original - 6*u*(mask64*(u^T W_original))",
+  "original_target": "repetition-associated residual directions derived from matched productive/repetitive contexts",
+  "conclusion_about_opus": "Same repetition failure, overlap with original attention-head investigations, different final five-head edit from original winning MLP edit; measured improvement reproduced from recovered outputs; strict ten-pass protocol violated by local network recomputation.",
+  "completed_at_utc": "2026-11-06T19:38:38.815310+00:00",
+  "source_project": "/Users/adithyagiridharan/Desktop/PythonProjects/claude",
+  "heldout_recovery": {
+    "raw_answers_recovered": 512,
+    "original_correct": 26,
+    "edited_correct": 112,
+    "answers_per_arm": 256,
+    "problems": 64,
+    "samples_per_problem": 4,
+    "exact_summary_match": true,
+    "scorer": "Original scoring functions with math-verify 0.9.0, CPU-only; repeat grading, not a different independent grading algorithm",
+    "correct_but_truncated_original": 3,
+    "audit": "recovered-heldout/regrading-audit.json"
+  },
+  "original_attention_overlap": {
+    "L15H7": "Exact same zeroing retained in authors p25c",
+    "L23H5": "Authors p25c tested zeroing alone and rejected; Opus retains half strength in combination",
+    "L15H6_L19H0_L23H4": "No targeted interventions found in inspected p25c/p50c logs; not a literature-wide novelty claim"
+  },
+  "saved_edits_verified": "Three local E3 matrices and recovered heldout job input bundle match exact zero/half operations; 1,310,720 stored values change; does not attest full GPU materialized checkpoint hash.",
+  "limits": [
+    "No world-first novelty claim",
+    "No complete transcript/network-history audit of blind conduct",
+    "Not a strict rule-compliant ten-pass replication",
+    "Head-removal diagnostics hold downstream computation fixed; combined edit effect is tested",
+    "Mixed64problem result not directly comparable with full MATH500 headline",
+    "Original report calls raw answers deleted but S3 partial backups remained; recovered and preserved"
+  ]
+}
