@@ -277,8 +277,10 @@ His review rules (each came from a real comment; preempt them, don't wait for th
 
 - "No technical debt": his correction lists are promised work; log them as vN.x items and honor them.
 - Scope discipline: one sentence + link for skipped depths; the temptation to be complete kills v1s.
-- GitHub: as of 2026-11-08 he authorizes Claude to commit and push to `first_principles` itself. Stage only
-  the files of the task at hand (never his unrelated untracked work), then report the commit and push.
+- GitHub: as of 2026-11-08 Claude may commit and push to `first_principles` itself, but ALWAYS on a branch
+  off main, then raise a pull request; never commit or push straight to main. Stage only the files of the task at
+  hand (never his unrelated untracked work). The active gh account on his machine is `IamAGP`; for this repo run
+  `gh auth switch --user ADITHYAG73` before pushing / opening the PR, then switch back to `IamAGP`.
 - Momentum management: when he over-plans deadlines, give honest schedule math with a scoped
   recommendation; when he procrastinates via fun work (animation talk mid-drafting), container it
   ("bounded discussion, then the section gets written today").
