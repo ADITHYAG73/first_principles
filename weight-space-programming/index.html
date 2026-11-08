@@ -159,28 +159,34 @@ at math. It is bad at stopping.</p>
 <p>The cut-off answers are not long derivations. They are loops. Here is a real one:</p>
 
 <div class="card">
-  <div class="tag">GSM8K train #4662 · original model · pass 1</div>
-  <p class="q">Zach is saving his money to buy a brand new bike that costs $100. His weekly allowance is $5. His parent
-  will pay him an extra $10 to mow the lawn. His neighbor will pay him $7 per hour to babysit their son. He has already
-  saved up $65. He’ll receive his allowance on Friday and he’s planning on babysitting for 2 hours this Saturday after
-  he mows the lawn. How much more money does Zach need to earn before he can buy the bike?</p>
-<pre>*   If he needs to earn $100 to buy the bike, and he has $65, he needs $35 more.
-*   But wait, if he earns $14, he has $79.
-*   $100 - $79 = $21.
+  <div class="tag">GSM8K train #3868 · original model · pass 1</div>
+  <p class="q">A 220-liter barrel has a small leak. It lost 10% of its contents before anyone noticed. How many liters
+  are left in the barrel?</p>
+<pre>*   $22 \times 9$
+*   $20 \times 9 = 180$
+*   $2 \times 9 = 18$
+*   $180 + 18 = 198$
     …
-*   Let's check the wording again. "How much more money does Zach need to earn".
+Okay, I'm done thinking.
+The solution is 198.
     …
-*   Wait, if he earns $100, he needs $0.
-*   If he earns $65, he needs $0.
-*   Wait, if he earns $14, he needs $0.
-*   Wait, if he earns $14, he needs $0.
-*   Wait, if he earns $14, he needs $0.</pre>
-  <div class="src">The last line then repeats <span class="rep">× 1,602</span> until the token limit. The correct answer is 6.
-  Record: <a class="rec" href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/generations/gen_1.jsonl.gz">generations/gen_1.jsonl.gz</a>, <code>rid</code> <code>gsm8k-train-4662#0</code>.</div>
+I'll stick to `\boxed{198}`.
+Wait, I'll just write `\boxed{198}`.
+No, I'll write `\boxed{198}`.
+Wait, I'll write `\boxed{198}`.</pre>
+  <div class="src">The last line then repeats <span class="rep">× 767</span> until the token limit. The model never closed
+  its thinking, so it never gave an answer, and the attempt scored zero. The correct answer is 198 (220 × 0.9), which it
+  had already worked out in its first 1,300 characters. Record:
+  <a class="rec" href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/generations/gen_1.jsonl.gz">generations/gen_1.jsonl.gz</a>,
+  <code>rid</code> <code>gsm8k-train-3868#1</code>.</div>
 </div>
 
-<p>The model often had the answer before it looped: in 81 of 115 grade-school loops, the correct answer had already
-appeared earlier in the thinking. And the loop feeds itself. When the model re-read its own loops, its confidence in
+<p>That is the common case: in 81 of 115 grade-school loops, the correct answer had already appeared earlier in the
+thinking. Not every loop starts from a right answer, though. On a problem about Zach saving for a $100 bike, the model
+counted only his babysitting money ($65 + $14 = $79, instead of $65 + $5 + $10 + $14 = $94), got $21 instead of $6,
+then wrote “Wait, if he earns $14, he needs $0.” 1,602 times (<code>rid</code> <code>gsm8k-train-4662#0</code>).</p>
+
+<p>And the loop feeds itself. When the model re-read its own loops, its confidence in
 the next token rose with every lap, from about 84% on the first repeat to over 99% by the seventh
 (<a class="rec" href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/records/notes.md">notes, F1–F3</a>).</p>
 
