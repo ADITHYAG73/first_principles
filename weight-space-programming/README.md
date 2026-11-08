@@ -8,6 +8,8 @@ Khattab, MIT CSAIL, 2026-11-02), whose experiments used OpenAI's [GPT-6 Astra](h
 It built its own harness on one AWS g5.xlarge, ran 10 forward passes over 2026-11-04/05, and edited 3 attention output
 matrices of Qwen3.5-0.8B. Everything behind the article's numbers is here.
 
+**To replicate with a coding agent** (Claude Code, Codex): follow [SKILL.md](SKILL.md).
+
 | Folder | What it holds |
 |---|---|
 | `task/` | The exact task prompt (identical to the authors' prompt, word for word). |

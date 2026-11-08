@@ -71,6 +71,10 @@ class Progress:
         """Persist intermediate results to S3 as they grow (compute is expensive, storage is cheap):
         per-GPU generation shards, activation/teacher-forced parts, shard logs -> jobs/<job>/partial/."""
         jdir = self.path.parent
+        if (jdir / "HELDOUT").exists():
+            # Patched 2026-11-08 after GPT-6 Astra's audit: held-out answer shards must not leave the machine.
+            # The original run uploaded them here; only aggregate numbers are meant to come back.
+            return
         for p in list(jdir.glob("*.jsonl")) + list(jdir.glob("*.npz")) + list(jdir.glob("*_gpu*.log")) \
                 + list((jdir / "tf_parts").glob("*.npz")):
             try:
@@ -672,6 +676,8 @@ def main(job: str) -> None:
     try:
         s3.download_file(BUCKET, f"jobs/{job}/request.json", str(jdir / "request.json"))
         req = json.load(open(jdir / "request.json"))
+        if req.get("heldout"):
+            (jdir / "HELDOUT").touch()  # stops sync_partials uploading held-out answers
         log(f"job {job} start: type={req['type']} model={req['model']}")
         t0 = time.time()
         if req["type"] == "generate":
