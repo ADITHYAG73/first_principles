@@ -18,7 +18,7 @@ matrices of Qwen3.5-0.8B. Everything behind the article's numbers is here.
 | `code/comparison/` | Post-hoc comparison with the authors' released edits and per-problem results. |
 | `records/` | `journal.md` (preflights, results, the pre-registered decision rule), `notes.md` (findings F1–F5), `writeup.md`, `comparison_with_article.md`, held-out aggregates, compressed run logs and pass requests. |
 | `generations/` | Every graded practice answer, gzipped JSONL, one record per answer (`rid`, `seed`, `text`, `correct`, `category`, ...). Passes: 1 (original), 4 and 5 (original vs E1), 7 (E2), 8 and 9 (E3), 10 (E1). |
-| `edits/E3/` | The submitted edit: the three edited tensors (float32 safetensors, key `w`). Changes vs `Qwen/Qwen3.5-0.8B` @ `2fc06364715b967f1860aea9cf38778875588b17`: layer 15 `o_proj` columns 1536–2047 → 0; layer 19 columns 0–255 → 0; layer 23 columns 1024–1535 × 0.5. |
+| `edits/E3/` | The final edit. The full checkpoint is on Hugging Face: [TokenGod/Qwen3.5-0.8B-opus-blind-weight-edit](https://huggingface.co/TokenGod/Qwen3.5-0.8B-opus-blind-weight-edit). The folder's README has the exact changes, hashes and a three-line rebuild. |
 | `audit_by_astra/` | GPT-6 Astra's independent audit of this run (evidence and mechanism audits, regrade of all 512 held-out answers). |
 
 Not included: activations and teacher-forced hidden states (≈ 10 GB), token-id files, held-out problem texts and

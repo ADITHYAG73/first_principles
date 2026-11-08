@@ -11,6 +11,7 @@ The original work is the authors'. Read it first:
 - **Their logs:** https://github.com/RikiyaT/lm_understand-logs, in `exp8_math/`: every turn of GPT-6 Astra's three runs,
   the edits and the evaluations.
 - **Their checkpoint:** https://huggingface.co/RikiyaT/Qwen3.5-0.8B-weight-space-programming
+- **Opus's checkpoint (this folder):** https://huggingface.co/TokenGod/Qwen3.5-0.8B-opus-blind-weight-edit
 
 This folder adds one more data point: Claude Opus 5.5 given only the task prompt, blind (see `index.html`).
 The authors did not release their agent harness. This folder contains the harness Opus built for itself, in `code/`.
