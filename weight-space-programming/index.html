@@ -106,6 +106,7 @@
   }
   sup.fn { font-size: .62em; line-height: 0; margin-left: 1px; }
   sup.fn a { font-family: var(--mono); border: none; padding: 0 1px; }
+  ul.sources { font-size: 14px; color: var(--ink-soft); padding-left: 22px; }
   ol.sources { font-size: 14px; color: var(--ink-soft); padding-left: 22px; }
   ol.sources li { margin-bottom: 6px; } ol.sources a { font-family: var(--mono); font-size: 12.5px; }
   .chart text { font-family: var(--mono); }
@@ -130,10 +131,10 @@ Their claim is that a frontier language model can read and write the weights of 
 Nobody trains anything. The model looks at the numbers and decides what to change.</p>
 
 <p>The model they used is <a href="https://openai.com/index/gpt-6-astra/">GPT-6 Astra</a>, OpenAI’s flagship,
-released in September. Given the raw weights of a small game-playing network, Astra names the game it was trained on.
-It writes game-playing networks from scratch that outplay networks trained for 100 million steps. And in the
+released in September. Given the raw weights of a small game-playing network, Astra <a href="https://rikiyat.github.io/blog/weight-space-programming/#:~:text=Which%20game%20was%20this%20neural%20network%20trained%20on">names the game it was trained on</a>.
+It writes game-playing networks from scratch that <a href="https://rikiyat.github.io/blog/weight-space-programming/#:~:text=outplay%20networks%20trained%20with%20PPO%20for%20100%20million%20steps">outplay networks trained for 100 million steps</a>. And in the
 experiment that got me, it takes Qwen3.5-0.8B, a small open reasoning model, and makes it better at math by
-hand-editing 0.016% of its weights. MATH-500 goes from 7.9% to 48.1%.</p>
+hand-editing 0.016% of its weights: <a href="https://rikiyat.github.io/blog/weight-space-programming/#:~:text=MATH-500%20rose%20from%207.9%25%20to%2048.1%25%20and%20GSM8K%20from%2013.8%25%20to%2067.1%25">MATH-500 goes from 7.9% to 48.1%</a>, and the same edit makes it better at following instructions too.</p>
 
 <p>I was fascinated, and a little annoyed with myself, because in hindsight it sounds so simple. These models already
 read text, images, audio and video. A list of floating-point numbers is one more thing to read. I wanted to see it
@@ -160,7 +161,7 @@ run and grade the model. Then it worked through its ten passes over about a day,
 <h2 id="failure">How does the model fail?</h2>
 
 <p>The first pass was diagnosis: the untouched model answering 256 practice problems, twice each. The model is not bad
-at math. It is bad at stopping.</p>
+at math. It is bad at stopping. The authors found the same thing, and they point out that Qwen’s own <a href="https://huggingface.co/Qwen/Qwen3.5-0.8B/blob/main/README.md#L856">model card</a> warns this model is prone to thinking loops.</p>
 
 <div class="big">
   <div><b>430 / 512</b><span>answers ran into the 32,768-token limit</span></div>
@@ -193,7 +194,7 @@ Wait, I'll write `\boxed{198}`.</pre>
 <p>That is the common case: in 81 of 115 grade-school loops, the correct answer had already appeared earlier in the
 thinking. Not every loop starts from a right answer, though. On a problem about Zach saving for a $100 bike, the model
 counted only his babysitting money ($65 + $14 = $79, instead of $65 + $5 + $10 + $14 = $94), got $21 instead of $6,
-then wrote “Wait, if he earns $14, he needs $0.” 1,602 times.<sup class="fn"><a href="#src-1" aria-label="source 1">1</a></sup></p>
+then wrote “Wait, if he earns $14, he needs $0.” 1,602 times.</p>
 
 <p>And the loop feeds itself. When the model re-read its own loops, every lap made the next lap more certain.
 The chance of writing anything other than the repeat shrinks toward zero:<sup class="fn"><a href="#src-2" aria-label="source 2">2</a></sup></p>
@@ -217,7 +218,7 @@ does one simple thing: find the previous copy of the current phrase, and copy th
   </div>
   <figcaption><strong>What a copy head does.</strong> Words stand in for tokens to keep this readable. The dashed box is
   the position being predicted. The solid box is the word that followed the same phrase one lap earlier. In real loops,
-  layer 15 head 7 put 74% of its attention on exactly that word; a word half a lap away got about 1%.<sup class="fn"><a href="#src-2" aria-label="source 2">2</a></sup></figcaption>
+  layer 15 head 7 put 74% of its attention on exactly that word; a word half a lap away got about 1%.</figcaption>
 </figure>
 
 <p>Several heads look back like this. Opus ranked them by something else: how hard each one <em>pushes</em> the model
@@ -228,7 +229,7 @@ toward writing the repeated word, inside loops and in normal reasoning. Three st
   <svg id="headfig" class="chart" viewBox="0 0 660 196" width="100%" role="img"
     aria-label="Push toward the repeated token, in loops versus normal text: layer 15 head 7, 1.75 vs 0.25; layer 15 head 6, 0.93 vs 0.14; layer 19 head 0, 0.53 vs 0.07."></svg>
   <p style="font-size:14px;color:var(--ink-soft)">How strongly each head pushes the model toward the word it writes
-  next, inside loops and in normal reasoning. Each pushes about seven times harder inside a loop.<sup class="fn"><a href="#src-3" aria-label="source 3">3</a></sup></p>
+  next, inside loops and in normal reasoning. Each pushes about seven times harder inside a loop.<sup class="fn"><a href="#src-2" aria-label="source 2">2</a></sup></p>
 </div>
 
 <h2 id="edit">What does “switching a head off” mean in the weights?</h2>
@@ -248,11 +249,11 @@ to the token’s running state. Set a head’s columns to zero and that head wri
   </div>
   <figcaption><strong>Opus’s final edit, drawn to scale.</strong> Each strip is one attention output matrix
   (1,024 rows × 2,048 columns), split into the eight 256-column bands its heads write through. Five bands change:
-  786,432 weights set to zero and 524,288 halved.<sup class="fn"><a href="#src-4" aria-label="source 4">4</a></sup></figcaption>
+  786,432 weights set to zero and 524,288 halved.<sup class="fn"><a href="#src-3" aria-label="source 3">3</a></sup></figcaption>
 </figure>
 
 <p>With those three heads off, accuracy on fresh practice problems roughly quadrupled, from about 12% to about
-45%.<sup class="fn"><a href="#src-5" aria-label="source 5">5</a></sup> Here is one problem, before and after, with the same random seed in both runs:</p>
+45%.<sup class="fn"><a href="#src-1" aria-label="source 1">1</a></sup> Here is one problem, before and after, with the same random seed in both runs:</p>
 
 <div class="card" style="margin-bottom:12px">
   <div class="tag">Same problem, same random seed, before and after the edit</div>
@@ -337,7 +338,7 @@ to the token’s running state. Set a head’s columns to zero and that head wri
 
     *   Wait, I see &quot;50 ants</pre>
     <div class="src">Cut off mid-word at the 32,768-token limit.</div></details>
-    <div class="src">It had 1600 within its first few lines, then asked about “doubles” 343 times.<sup class="fn"><a href="#src-1" aria-label="source 1">1</a></sup></div>
+    <div class="src">It had 1600 within its first few lines, then asked about “doubles” 343 times.</div>
   </div>
   <div class="card after">
     <div class="tag">Edited (final edit)</div>
@@ -508,12 +509,12 @@ $$1500 + 100 = 1600$$
 Therefore, there will be 1,600 ants in the jar after 5 hours.
 
 \boxed{1600}</pre></details>
-    <div class="src">Still checks its reading of “doubles”, once.<sup class="fn"><a href="#src-1" aria-label="source 1">1</a></sup></div>
+    <div class="src">Still checks its reading of “doubles”, once.</div>
   </div>
 </div>
 
 <p>Opus also checked for the obvious cheat. Did the edit just make the model stop thinking early? No. Its correct
-answers thought for <em>longer</em> than the original's did. They were not cut short; they were let out of the loop.<sup class="fn"><a href="#src-5" aria-label="source 5">5</a></sup></p>
+answers thought for <em>longer</em> than the original's did. They were not cut short; they were let out of the loop.</p>
 
 <figure>
   <div class="fig"><svg id="thinkfig" class="chart" viewBox="0 0 660 110" width="100%" role="img"
@@ -535,11 +536,11 @@ the loops further but broke something else. Twenty-three answers ended like this
 
 Answer: 16</pre>
   <div class="verdict">Right number · no <code>\boxed{}</code> · scored 0</div>
-  <div class="src">19 of the 23 unboxed answers had the right number. The grading rule only reads <code>\boxed{}</code>.<sup class="fn"><a href="#src-1" aria-label="source 1">1</a></sup></div>
+  <div class="src">19 of the 23 unboxed answers had the right number. The grading rule only reads <code>\boxed{}</code>.</div>
 </div>
 
 <p>Opus’s guess is that those two heads also carry the prompt’s instruction to box the answer. It never tested
-that guess. Instead it turned them down to half strength, which kept the boxes and added to the gain:<sup class="fn"><a href="#src-5" aria-label="source 5">5</a></sup></p>
+that guess. Instead it turned them down to half strength, which kept the boxes and added to the gain:<sup class="fn"><a href="#src-1" aria-label="source 1">1</a></sup></p>
 
 <figure>
   <div class="fig"><svg id="pathfig" class="chart" viewBox="0 0 760 200" width="100%" role="img"
@@ -555,7 +556,7 @@ that guess. Instead it turned them down to half strength, which kept the boxes a
 attempts each. They were chosen and graded on the remote machine, so Opus never saw them.</p>
 
 <div class="big">
-  <div><b>10.2% → 43.8%</b><span>accuracy on 64 held-out benchmark problems<sup class="fn"><a href="#src-6" aria-label="source 6">6</a></sup></span></div>
+  <div><b>10.2% → 43.8%</b><span>accuracy on 64 held-out benchmark problems<sup class="fn"><a href="#src-5" aria-label="source 5">5</a></sup></span></div>
   <div><b>91% → 47%</b><span>answers that hit the token limit</span></div>
 </div>
 
@@ -574,7 +575,7 @@ where every one of the 256 attempts per model ended:</p>
   </div>
   <figcaption><strong>Where the 256 held-out attempts ended.</strong> The original was almost never wrong because it
   almost never finished. Three of its 26 correct answers were cut off but had already boxed the right number.
-  <sup class="fn"><a href="#src-6" aria-label="source 6">6</a></sup></figcaption>
+  </figcaption>
 </figure>
 
 <h2 id="compare">How does this compare with Astra?</h2>
@@ -585,17 +586,17 @@ where every one of the 256 attempts per model ended:</p>
 Astra three times, with 10, 25 and 50 forward passes. They agree with Opus more than I expected:</p>
 
 <ul>
-  <li><strong>Same diagnosis.</strong> In Astra’s 50-pass run, 85 of its first 96 answers hit the limit.</li>
-  <li><strong>Same suspects.</strong> Both measured which heads look back at the previous lap, and found the same top
+  <li><strong>Same diagnosis.</strong> In Astra’s 50-pass run, <a href="https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/runs/p50c/readable/passes.md">85 of its first 96 answers</a> hit the limit.</li>
+  <li><strong>Same suspects.</strong> <a href="https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/runs/p10c/work_notes/notes.md">Both</a> measured which heads look back at the previous lap, and found the same top
   three: layer 15 head 7, layer 11 head 1 and layer 23 head 5.</li>
-  <li><strong>Same head.</strong> Astra’s 25-pass run ended by switching off exactly layer 15 head 7.</li>
-  <li><strong>Same warning.</strong> That run also tried removing layer 23 head 5 and dropped it, because it hurt normal
+  <li><strong>Same head.</strong> <a href="https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/runs/p25c/final_answer.md">Astra’s 25-pass run</a> ended by switching off exactly layer 15 head 7.</li>
+  <li><strong>Same warning.</strong> That run also <a href="https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/runs/p25c/explanations.md">tried removing layer 23 head 5</a> and dropped it, because it hurt normal
   arithmetic more than the loops. It is one of the two heads whose full removal broke Opus’s boxed answers.</li>
-  <li><strong>Same layers.</strong> Astra’s best edit sits in layers 15 and 19.</li>
+  <li><strong>Same layers.</strong> Astra <a href="https://rikiyat.github.io/blog/weight-space-programming/#:~:text=Astra%20traced%20the%20looping%20to%20one%20direction%20written%20by%20the%20MLPs%20of%20layers%2015%20and%2019">traced the looping to layers 15 and 19</a>.</li>
 </ul>
 
 <p>Where they split is the part of the network they cut. Astra’s best run, with 50 passes, left the heads alone. It
-found one <strong>direction</strong> in the 1,024-number state that marks “I’m repeating myself”, then reversed it
+found one <strong>direction</strong> in the 1,024-number state that marks “I’m repeating myself”, then <a href="https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/runs/p50c/work_notes/final_report.md">reversed it</a>
 inside the 64 MLP neurons per layer that write it most. For each chosen neuron’s output column \(w\):</p>
 
 <div class="katex-block">\[ w \;\leftarrow\; w \;-\; 6\,u\,\big(u^{\top} w\big) \]</div>
@@ -605,6 +606,19 @@ part of \(w\) that lies along \(u\):</p>
 <div class="katex-block">\[ u^{\top} w \;\longrightarrow\; u^{\top} w - 6\,(u^{\top}u)\,(u^{\top} w) \;=\; -5\,\big(u^{\top} w\big) \]</div>
 <p>That part is reversed and amplified five times, not deleted. Everything in \(w\) at right angles to \(u\) is
 untouched. Opus’s edit changes 1.3 million weights; Astra’s changes about 130,000.</p>
+
+<p>Astra also checked that the direction is what matters: the same size of edit along a random direction did nothing
+(<a href="https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/runs/p50c/work_notes/final_report.md">+1.6 points, within noise</a>). And its edit reaches well
+beyond the problems it was tuned on. On the full benchmarks it lifts grade-school math, competition math, and
+instruction following, which it was never aimed at:</p>
+
+<figure>
+  <div class="fig"><svg id="astrafig" class="chart" viewBox="0 0 660 196" width="100%" role="img"
+    aria-label="Astra's 50-pass edit on the full benchmarks: MATH-500 7.9 to 48.1, GSM8K 13.8 to 67.1, IFEval 21.0 to 62.3."></svg></div>
+  <figcaption><strong>Astra’s edit on the full benchmarks.</strong> Original Qwen3.5-0.8B against Astra’s 50-pass
+  edit, from the authors’ <a href="https://github.com/RikiyaT/lm_understand-logs/tree/main/exp8_math/eval">released evaluation</a> (MATH-500 all 500 problems, GSM8K all
+  1,319, IFEval all 541). IFEval measures instruction following.</figcaption>
+</figure>
 
 <figure>
   <div class="fig">
@@ -620,7 +634,7 @@ untouched. Opus’s edit changes 1.3 million weights; Astra’s changes about 13
   column stays as it was. Compare the attention-head strips above: different half of the same two layers.</figcaption>
 </figure>
 
-<p>On the same 64 held-out problems, using the authors’ released per-problem results:<sup class="fn"><a href="#src-7" aria-label="source 7">7</a></sup></p>
+<p>On the same 64 held-out problems, using the authors’ <a href="https://github.com/RikiyaT/lm_understand-logs/tree/main/exp8_math/eval">released per-problem results</a>:<sup class="fn"><a href="#src-6" aria-label="source 6">6</a></sup></p>
 
 <figure>
   <div class="fig"><svg id="cmpfig" class="chart" viewBox="0 0 660 300" width="100%" role="img"
@@ -637,14 +651,14 @@ or 25. That gap needs an asterisk.</p>
 
 <p>Not entirely. The prompt says only the forward-pass tool may run the network. The tool returned the 1,024-number
 state between layers, but not what each head did inside a layer. So Opus re-implemented the attention layers in
-plain PyTorch,<sup class="fn"><a href="#src-8" aria-label="source 8">8</a></sup> fed them the recorded inputs and read each head’s
+plain PyTorch,<sup class="fn"><a href="#src-4" aria-label="source 4">4</a></sup> fed them the recorded inputs and read each head’s
 output separately. That is how it measured each head’s push, and the push is what found the heads that worked.</p>
 
 <p>That is running part of the network outside the tool. The authors state the rule plainly in the same post:
 “<a href="https://rikiyat.github.io/blog/weight-space-programming/#:~:text=running%20the%20network%20or%20any%20of%20its%20layers">running the network or any of its layers on any input</a>”
 is not allowed.</p>
 
-<p>Astra followed it. In its 10-pass run it could only see where heads look, so it switched off the two that look
+<p>Astra followed it. In its 10-pass run it could only see where heads look, so it <a href="https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/runs/p10c/work_notes/notes.md">switched off the two</a> that look
 hardest at the previous lap, layer 15 head 7 and layer 11 head 1, and gained 0.8 points, which is noise. So the
 10-pass comparison is not a fair race. The edit itself is a legitimate weight edit, and every number saying it works
 comes from real runs of the model. But the microscope that found it was not allowed. Opus flagged this itself in its own write-up, before it had seen the post.</p>
@@ -656,10 +670,10 @@ models check each other, and I checked the original claim myself.</p>
 
 <p>Astra went through Opus’s run and found a real mistake. Opus had said the individual held-out answers were gone. In
 fact its own backup had quietly copied all 512 of them to cloud storage. Astra recovered them, regraded every one, and
-got exactly the numbers Opus had reported.<sup class="fn"><a href="#src-9" aria-label="source 9">9</a></sup> Without being told, it also flagged the rule Opus broke.</p>
+got exactly the numbers Opus had reported.<sup class="fn"><a href="#src-5" aria-label="source 5">5</a></sup> Without being told, it also flagged the rule Opus broke.</p>
 
 <p>Opus, in turn, compared the checkpoint the authors released with the original model, weight by weight. Only the two
-matrices the authors describe had changed.<sup class="fn"><a href="#src-7" aria-label="source 7">7</a></sup> And when I ran that checkpoint on a GPU of my own, the first 64
+matrices <a href="https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/runs/p50c/edit/manifest.json">their records</a> describe had changed. And when I ran that checkpoint on a GPU of my own, the first 64
 MATH-500 problems went from 9.4% to 58.2%. The headline result in their post is not an artefact of their setup.</p>
 
 <h2 id="limits">What we still don’t know</h2>
@@ -672,7 +686,7 @@ second attempt would differ.</p>
 checked that switching off three random heads does nothing, a control Astra did run for its own edit. Its explanation
 for why the layer-23 heads break the boxed answers is a guess it never tested.</p>
 
-<p>And the authors found that Astra’s edit also improved instruction following, not just math. Nobody has checked
+<p>And the authors found that Astra’s edit also <a href="https://rikiyat.github.io/blog/weight-space-programming/#:~:text=IFEval%2C%20which%20measures%20instruction%20following%2C%20rose%20from%2021.0%25%20to%2062.3%25">improved instruction following</a>, not just math. Nobody has checked
 whether Opus’s edit does the same.</p>
 
 <h2 id="takeaway">What I make of it</h2>
@@ -682,24 +696,33 @@ the same head. They differ in where they cut. Opus removed the heads that copy t
 internal state that says “we’re in a loop”.</p>
 
 <p>Those may be two halves of the same machine. Astra’s direction shows up strongly in Opus’s own recordings of loops,
-rising even before a loop starts, and Opus’s edit shrinks it by only 10–14%.<sup class="fn"><a href="#src-7" aria-label="source 7">7</a></sup> If that is right, the two edits might stack.
+rising even before a loop starts, and Opus’s edit shrinks it by only 10–14%.<sup class="fn"><a href="#src-6" aria-label="source 6">6</a></sup> If that is right, the two edits might stack.
 I haven’t tested it yet.</p>
+
+<p>The authors’ own follow-up sharpens this. On Gemma 3 270M, a small model that rarely loops, Astra could not
+raise math scores at all. In their words, editing weights “<a href="https://rikiyat.github.io/blog/weight-space-programming/#:~:text=Editing%20weights%20could%20remove%20an%20obstacle%20that%20hid%20an%20ability%2C%20but%20it%20could%20not%20add%20an%20ability%20the%20model%20lacked">could remove an obstacle that hid an ability, but it could not add an ability the model lacked</a>.” Both edits here work because Qwen already knew the math.</p>
 
 <p>What stays with me is how small the edits are. Zero a few columns, or reverse one direction in 128 neurons, and a
 model that almost never finishes starts finishing, and mostly getting it right. The editing is the easy part. Seeing
 where to edit is the whole job, and these models are starting to do the seeing.</p>
 
 <h2 id="sources">Sources</h2>
+<p><strong>The original work</strong></p>
+<ul class="sources">
+  <li><a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a>, Rikiya Takehi, Jayden Teoh, Alex Zhang, Omar Khattab (MIT CSAIL), 2 Nov 2026.</li>
+  <li><a href="https://github.com/RikiyaT/lm_understand-logs">Complete logs of every experiment</a>, including all three Qwen runs and their evaluations.</li>
+  <li><a href="https://huggingface.co/RikiyaT/Qwen3.5-0.8B-weight-space-programming">Astra’s edited Qwen3.5-0.8B</a>, on Hugging Face.</li>
+  <li><a href="https://openai.com/index/gpt-6-astra/">GPT-6 Astra</a>, OpenAI, September 2026.</li>
+  <li><a href="https://huggingface.co/Qwen/Qwen3.5-0.8B/blob/main/README.md#L856">Qwen3.5-0.8B model card</a>, the note on thinking loops.</li>
+</ul>
+<p><strong>This run</strong> (the numbered notes in the text)</p>
 <ol class="sources">
-  <li id="src-1">Every graded practice answer, one record per answer: <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/generations/">generations/</a></li>
-  <li id="src-2">Findings on the loops and the copy heads (F1–F3): <a href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/records/notes.md">records/notes.md</a></li>
-  <li id="src-3">Head-push measurement: code and output: <a href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/code/analysis_cells/0015.out">code/analysis_cells/0015.out</a></li>
-  <li id="src-4">The final edit: the three edited weight matrices: <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/edits/E3/">edits/E3/</a></li>
-  <li id="src-5">Every pass and its results: <a href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/records/writeup.md">records/writeup.md</a></li>
-  <li id="src-6">Held-out results, and Astra’s regrade of all 512 held-out answers: <a href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/records/heldout_result.json">records/heldout_result.json</a></li>
-  <li id="src-7">Comparison with the authors’ release, and the same-problem scores: <a href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/records/comparison_with_article.md">records/comparison_with_article.md</a></li>
-  <li id="src-8">The local re-implementation of the attention layers: <a href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/code/wsp/recon.py">code/wsp/recon.py</a></li>
-  <li id="src-9">Astra’s audit of this run: <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/audit_by_astra/">audit_by_astra/</a></li>
+  <li id="src-1">Every answer the model wrote, graded: <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/generations/">generations/</a></li>
+  <li id="src-2">Analysis code and its printed output: <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/code/analysis_cells/">code/analysis_cells/</a></li>
+  <li id="src-3">The final edit, as a full checkpoint: <a href="https://huggingface.co/TokenGod/Qwen3.5-0.8B-opus-blind-weight-edit">TokenGod/Qwen3.5-0.8B-opus-blind-weight-edit</a></li>
+  <li id="src-4">The local re-implementation of the attention layers: <a href="https://github.com/ADITHYAG73/first_principles/blob/main/weight-space-programming/code/wsp/recon.py">code/wsp/recon.py</a></li>
+  <li id="src-5">Astra’s audit of this run, with its regrade of all 512 held-out answers: <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/audit_by_astra/">audit_by_astra/</a></li>
+  <li id="src-6">Comparison code: checkpoint diff, direction test, same-problem scores: <a href="https://github.com/ADITHYAG73/first_principles/tree/main/weight-space-programming/code/comparison/">code/comparison/</a></li>
 </ol>
 
 <p class="aiuse"><strong>How this was made.</strong> Claude Opus 5.5 ran the experiment blind, from the task prompt
@@ -844,6 +867,18 @@ hbars('thinkfig',[['Original',3973,'3,973 tokens',HAIR],['Edited',10016,'10,016 
       el('rect',{x:230,y:yy,width:Math.max(1,w),height:14,fill:b[1],stroke:INK,'stroke-width':1},s);
       txt(s,230+w+8,yy+11,b[0].toFixed(1)+'%',{size:11});});
     y+=54;});})();
+})();
+</script>
+
+<script>
+(function(){var s=document.getElementById('astrafig');if(!s)return;var NS='http://www.w3.org/2000/svg',INK='#1A1A1E',SOFT='#5A5A63';
+function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);s.appendChild(e);return e;}
+function tx(x,y,v,o){o=o||{};var t=el('text',{x:x,y:y,'font-size':o.size||11.5,fill:o.fill||INK,'font-weight':o.bold?'700':'400','font-family':'SF Mono, ui-monospace, Menlo, monospace'});t.textContent=v;}
+var d=el('defs',{}),p=document.createElementNS(NS,'pattern');p.setAttribute('id','astrafig-h');p.setAttribute('width',6);p.setAttribute('height',6);p.setAttribute('patternUnits','userSpaceOnUse');
+var pa=document.createElementNS(NS,'path');pa.setAttribute('d','M0 6L6 0');pa.setAttribute('stroke',INK);pa.setAttribute('stroke-width',1.4);p.appendChild(pa);d.appendChild(p);
+tx(230,12,'▨ original Qwen   ■ after Astra’s edit',{fill:SOFT,size:11});
+[['MATH-500',7.9,48.1],['GSM8K',13.8,67.1],['IFEval (instructions)',21.0,62.3]].forEach(function(r,i){var y=26+i*56;tx(0,y+24,r[0],{bold:true});
+ [[r[1],'url(#astrafig-h)'],[r[2],INK]].forEach(function(b,k){var w=360*b[0]/75,yy=y+k*20;el('rect',{x:230,y:yy,width:w,height:16,fill:b[1],stroke:INK,'stroke-width':1});tx(230+w+8,yy+12,b[0].toFixed(1)+'%');});});
 })();
 </script>
 </body>
