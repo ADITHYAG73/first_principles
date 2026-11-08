@@ -272,6 +272,14 @@ His review rules (each came from a real comment; preempt them, don't wait for th
    when the page has no anchor), and our own records in the repo for every number.
 8. **Attribute correctly**: a model's maker, a paper's authors, an audit's reviewer. Never imply a lab
    built a model it only used.
+9. **Write for the reader, not as a research ledger.** No process bookkeeping in the prose: run labels (E2/E3),
+   timestamps, "the decision rule was written before…", record IDs, file names, standard errors. Provenance goes in
+   small numbered source links and a Sources list at the end. Say what the reader needs and why they should care.
+10. **Numbers become charts.** Any comparison of three or more numbers, any trend, any before/after: a chart
+    (labeled, zero-based, meaning by pattern and label, not hue). A sentence carries at most one or two numbers.
+11. **Sweep the whole draft before handing it over.** Re-read the entire piece as a cold reader and fix every
+    instance of 1–10, not just the line he commented on. If he has to point at it, the sweep failed.
+12. **Math is typeset** with KaTeX, display form for anything load-bearing; never ASCII or code font for an equation.
 
 ## Standing agreements
 
